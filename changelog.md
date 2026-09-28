@@ -1,5 +1,19 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.4.1-beta — 2026-09-28 11:20**
+**Versione corrente: 0.5.0-beta — 2026-09-28 11:36**
+
+## [0.5.0-beta] — 2026-09-28 11:36
+### Aggiunto
+- **Procedura guidata** (strumento "Guida", attivo all'avvio): 7 passi — Modello, Stampante, Orienta, Metodo, Giunti e taglio, Controllo, Esporta — con pulsanti Indietro/Avanti, scelta del metodo (Automatico consigliato, Griglia, Manuale) e controlli finali (pezzi fuori volume, orientamento, disposizione).
+- **Barra dei passi** in alto sulla vista: mostra passo corrente e passi completati (✓); ogni passo è cliccabile.
+- Negli strumenti manuali, con la guida attiva, pulsante **"Torna alla guida"**.
+- Nuovo giunto **Chiavetta**: linguetta rettangolare lunga lungo l'asse principale della sezione (larghezza, altezza, lunghezza in % della sezione, anche sull'altra metà).
+- Nuovo giunto **Coda di rondine**: profilo trapezoidale che attraversa la sezione, sede aperta per l'inserimento a scorrimento (larghezza, altezza, svasatura in gradi).
+- **Giunto per ogni taglio**: in Multi-piano, Auto e nella guida ogni taglio (X1, Y1, Z1…) può avere un tipo di giunto diverso.
+- Preset stampante "Bambu A1 mini" nella guida.
+
+### Modificato
+- Il pannello giunti mostra i parametri di tutti i tipi in uso (generale + singoli tagli).
+
 
 ## [0.4.1-beta] — 2026-09-28 11:20
 ### Corretto

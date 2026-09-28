@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — joints.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.5.0-beta — 2026-09-28 11:35
 // -----------------------------------------------------------------------------
 // Taglio planare con giunti. Flusso:
 //  1. il solido viene portato in un sistema locale dove il piano di taglio è
@@ -164,11 +164,93 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
       }
 
       // ---- giunti -----------------------------------------------------------
+      // [2026-09-28 v0.4.1] versione precedente del blocco giunti (solo puntiformi):
+      // if (o.type !== 'none') {
+      // const r = o.type === 'magnet' ? o.magD / 2 + o.magClr : o.radius;
+      // const inset = T(cs.offset(-(r + tol + Math.max(wall, 2, r)), 'Round'));  // distanza dal bordo: evita pareti troppo sottili
+      // const len = o.depth > 0 ? o.depth : o.length;
+      // const pts = [];
+      // for (const isl of inset.decompose()) {
+      // T(isl); const a = isl.area(); if (a <= 0) continue;
+      // const nAuto = a < 60 ? 1 : a < 900 ? 2 : a < 3500 ? 3 : 4;
+      // const cnt = o.count > 0 ? o.count : nAuto;
+      // pts.push(...spread(candidates(isl), cnt, 2 * r + 2 * tol + wall));
+      // }
+      // count = pts.length;
+      // for (const p of pts) {
+      // used = true;
+      // if (o.type === 'pin') {
+      // const pin = T(shapeCS(o.shape, o.radius)).translate([p.x, p.y]); T(pin);
+      // const hole = T(T(shapeCS(o.shape, o.radius + tol)).translate([p.x, p.y]));
+      // if (!o.swap) { addN.push(T(prism(pin, -0.4, len))); subP.push(T(prism(hole, -0.1, len + tol))); }
+      // else { addP.push(T(prism(pin, -len, 0.4))); subN.push(T(prism(hole, -len - tol, 0.1))); }
+      // } else if (o.type === 'tenon') {
+      // const hole = T(T(shapeCS(o.shape, o.radius + tol)).translate([p.x, p.y]));
+      // subP.push(T(prism(hole, -0.1, len / 2 + tol))); subN.push(T(prism(hole, -len / 2 - tol, 0.1)));
+      // const dw = T(shapeCS(o.shape, o.radius)); dowels.push(dw.extrude(len - tol));
+      // } else if (o.type === 'magnet') {
+      // const hole = T(T(CrossSection.circle(o.magD / 2 + o.magClr, 48)).translate([p.x, p.y]));
+      // const dep = o.magT + o.magClr;
+      // subP.push(T(prism(hole, -0.1, dep))); subN.push(T(prism(hole, -dep, 0.1)));
+      // }
+      // }
       if (o.type !== 'none') {
-        const r = o.type === 'magnet' ? o.magD / 2 + o.magClr : o.radius;
-        const inset = T(cs.offset(-(r + tol + Math.max(wall, 2, r)), 'Round'));  // distanza dal bordo: evita pareti troppo sottili
+        // v0.5.0: r è "let" perché i giunti lineari (chiavetta/coda di rondine)
+        // usano metà larghezza come ingombro per la numerazione
+        let r = o.type === 'magnet' ? o.magD / 2 + o.magClr : o.radius;
         const len = o.depth > 0 ? o.depth : o.length;
         const pts = [];
+
+        if (o.type === 'key' || o.type === 'dovetail') {
+          // ---- v0.5.0: GIUNTI LINEARI --------------------------------------
+          // chiavetta = linguetta rettangolare lunga, integrata sul lato neg,
+          //             sede chiusa sul lato pos;
+          // coda di rondine = profilo trapezoidale (stretto alla faccia, largo
+          //             in punta) che attraversa tutta la sezione: la sede sul
+          //             lato pos è aperta alle estremità e il pezzo si infila
+          //             scorrendo lungo l'asse principale della sezione.
+          const wid = o.keyW, h = o.keyH; r = wid / 2 + (o.type === 'dovetail' ? h * Math.tan(o.dvAngle * Math.PI / 180) : 0);
+          const region = T(cs.offset(-(tol + Math.max(wall, 2)), 'Round'));
+          for (const isl of region.decompose()) {
+            T(isl); if (isl.area() <= wid * wid * 2) continue;
+            const cand = candidates(isl, 1200); if (cand.length < 3) continue;
+            // asse principale (PCA dei punti interni) e baricentro
+            let mx = 0, my = 0; for (const c of cand) { mx += c.x; my += c.y; } mx /= cand.length; my /= cand.length;
+            let sxx = 0, syy = 0, sxy = 0; for (const c of cand) { const dx = c.x - mx, dy = c.y - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; }
+            const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy); const ux = Math.cos(ang), uy = Math.sin(ang), vx = -uy, vy = ux;
+            let umin = Infinity, umax = -Infinity, vmin = Infinity, vmax = -Infinity;
+            for (const c of cand) { const pu = (c.x - mx) * ux + (c.y - my) * uy, pv = (c.x - mx) * vx + (c.y - my) * vy; umin = Math.min(umin, pu); umax = Math.max(umax, pu); vmin = Math.min(vmin, pv); vmax = Math.max(vmax, pv); }
+            const cnt = o.count > 0 ? o.count : ((vmax - vmin) > 5 * wid ? 2 : 1);
+            for (let i = 0; i < cnt; i++) {
+              const off = cnt === 1 ? 0 : vmin + (vmax - vmin) * (i + 1) / (cnt + 1);
+              const cx = mx + vx * off, cy = my + vy * off; const L = umax - umin;
+              if (o.type === 'key') {
+                const kl = Math.max(wid, L * o.keyLen / 100);
+                const rect = T(T(T(CrossSection.square([kl, wid], true)).rotate(ang * 180 / Math.PI)).translate([cx + ux * (umin + umax) / 2, cy + uy * (umin + umax) / 2]));
+                const clip = T(rect.intersect(isl)); if (clip.isEmpty()) continue;
+                const hole = T(clip.offset(tol, 'Miter'));
+                if (!o.swap) { addN.push(T(prism(clip, -0.4, h))); subP.push(T(prism(hole, -0.1, h + tol))); }
+                else { addP.push(T(prism(clip, -h, 0.4))); subN.push(T(prism(hole, -h - tol, 0.1))); }
+                for (let t = -kl / 2; t <= kl / 2; t += wid) pts.push({ x: cx + ux * ((umin + umax) / 2 + t), y: cy + uy * ((umin + umax) / 2 + t) });
+              } else {
+                const w2 = wid + 2 * h * Math.tan(o.dvAngle * Math.PI / 180);
+                const trap = (a, b, e, z0, z1) => new CrossSection([[[-a / 2 - e, z0], [a / 2 + e, z0], [b / 2 + e, z1], [-b / 2 - e, z1]]]);
+                // base: X = trasversale, Y = altezza, Z = scorrimento -> mondo locale
+                const B = new THREE.Matrix4().makeBasis(new THREE.Vector3(vx, vy, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(ux, uy, 0)).setPosition(cx, cy, 0);
+                const tailP = T(trap(wid, w2, 0, -0.4, h)); const longL = (L + 20) * 3;
+                const tail = T(T(T(tailP.extrude(longL)).translate([0, 0, -longL / 2])).transform(B.elements));
+                const tailClip = T(Manifold.intersection(tail, T(prism(isl, -1, h + 1))));
+                if (tailClip.isEmpty()) continue;
+                const grooveP = T(trap(wid, w2, tol, -0.1, h + tol));
+                const groove = T(T(T(grooveP.extrude(longL)).translate([0, 0, -longL / 2])).transform(B.elements));
+                addN.push(tailClip); subP.push(groove);
+                for (let t = umin; t <= umax; t += wid) pts.push({ x: cx + ux * t, y: cy + uy * t });
+              }
+              used = true; count++;
+            }
+          }
+        } else {
+        const inset = T(cs.offset(-(r + tol + Math.max(wall, 2, r)), 'Round'));  // distanza dal bordo: evita pareti troppo sottili
         for (const isl of inset.decompose()) {
           T(isl); const a = isl.area(); if (a <= 0) continue;
           const nAuto = a < 60 ? 1 : a < 900 ? 2 : a < 3500 ? 3 : 4;
@@ -193,6 +275,7 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
             subP.push(T(prism(hole, -0.1, dep))); subN.push(T(prism(hole, -dep, 0.1)));
           }
         }
+        } // fine ramo giunti puntiformi
 
         // ---- numerazione incisa -------------------------------------------
         if (o.number && used) {

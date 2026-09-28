@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- ==========================================================================
      3D STL Multipart Maker — index.html
-     Versione: 0.4.1-beta — 2026-09-28 11:19
+     Versione: 0.5.0-beta — 2026-09-28 11:35
      Struttura dell'interfaccia: barra superiore, barra strumenti a sinistra,
      vista 3D al centro (canvas + overlay SVG per i disegni), pannello
      opzioni/parti a destra, barra di stato in basso.
@@ -52,6 +52,8 @@
 <nav id="tools"></nav>
 
 <main id="view">
+  <!-- v0.5.0: barra dei passi della procedura guidata -->
+  <div id="steps"></div>
   <svg id="overlay"></svg>
   <div id="drop" class="hidden">Rilascia qui i file STL / 3MF / OBJ</div>
   <div id="empty"><div><h2>Trascina un modello qui</h2><p>STL, 3MF oppure OBJ — oppure premi <b>Apri</b>.</p><p class="small">Tasto destro: orbita · Centrale: sposta · Rotella: zoom</p><button data-act="demo">Carica modello di prova</button></div></div>

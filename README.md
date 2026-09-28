@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker
-**Versione: 0.4.1-beta — 2026-09-28 11:19**
+**Versione: 0.5.0-beta — 2026-09-28 11:36**
 
 Divide modelli 3D troppo grandi per la stampante in parti stampabili, con perni, tenoni o sedi per magneti e numerazione dei giunti.
 Tutto il calcolo avviene sul tuo computer: nessun modello viene caricato in rete.
@@ -11,7 +11,8 @@ Tutto il calcolo avviene sul tuo computer: nessun modello viene caricato in rete
 ## Funzioni
 - Import STL, 3MF, OBJ · export STL, 3MF, ZIP con **guida di montaggio PDF**
 - Tagli: piano, multi-piano, **automatico secondo il volume della stampante**, linea, corda, banda elastica, pennello
-- Giunti: perni, tenoni sciolti, magneti; innesto rastremato; numeri incisi
+- **Procedura guidata** in 7 passi: modello → stampante → orientamento → metodo → giunti e taglio → controllo → esporta
+- Giunti: perni, tenoni sciolti, magneti, **chiavetta**, **coda di rondine**; tipo diverso per ogni taglio; innesto rastremato; numeri incisi
 - Scultura, forme, booleane, inlay, riparazione mesh, riduzione dettaglio, orientamento migliore
 
 Manuale completo: [manual.md](manual.md) · Note tecniche: [context.md](context.md) · Novità: [changelog.md](changelog.md)

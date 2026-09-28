@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — cuts.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.5.0-beta — 2026-09-28 11:35
 // -----------------------------------------------------------------------------
 // Operazioni di taglio ad alto livello sulle parti:
 //  - planeCut:       uno o più piani (piano, multi-piano, auto multi-piano, linea)
@@ -63,16 +63,21 @@ export function planeCut(targets, planes, opts, label = 'Taglio', samples = null
         if (p.kind === 'dowel' || !straddles(bboxOf(p.data), pl.n, pl.d)) { next.push(p); continue; }
         const man = manFromData(p.data);
         if (man.status() !== 'NoError') { man.delete(); throw new Error(`La parte "${p.name}" non è un solido chiuso: usa Modello › Ripara prima di tagliare.`); }
-        const r = jointedSplit(man, pl.n, pl.d, opts, jointNo, samples);
+        // [2026-09-28 v0.4.1] const r = jointedSplit(man, pl.n, pl.d, opts, jointNo, samples);
+        // v0.5.0: ogni piano può avere un tipo di giunto proprio (pl.type), altrimenti quello generale
+        const po = pl.type && pl.type !== 'default' ? { ...opts, type: pl.type } : opts;
+        const r = jointedSplit(man, pl.n, pl.d, po, jointNo, samples);
         man.delete();
         if (!r) { next.push(p); continue; }
         const nNeg = childName(p), nPos = childName(p);
-        const jn = r.used && opts.type !== 'none' ? [jointNo] : [];
+        // [2026-09-28 v0.4.1] const jn = r.used && opts.type !== 'none' ? [jointNo] : [];
+        const jn = r.used && po.type !== 'none' ? [jointNo] : [];
         const neg = makePart(dataFromMan(r.neg), nNeg, { joints: [...p.joints, ...jn] });
         const pos = makePart(dataFromMan(r.pos), nPos, { joints: [...p.joints, ...jn] });
         r.neg.delete(); r.pos.delete();
         if (r.used) {
-          log.push({ no: jointNo, type: opts.face === 'chamfer' && opts.type === 'none' ? 'chamfer' : opts.type, a: nNeg, b: nPos, count: r.count || 0 });
+          // [2026-09-28 v0.4.1] log.push({ no: jointNo, type: opts.face === 'chamfer' && opts.type === 'none' ? 'chamfer' : opts.type, a: nNeg, b: nPos, count: r.count || 0 });
+          log.push({ no: jointNo, type: po.face === 'chamfer' && po.type === 'none' ? 'chamfer' : po.type, a: nNeg, b: nPos, count: r.count || 0 });
           r.dowels.forEach((m, i) => dowels.push({ man: m, name: `Tenone G${jointNo}-${i + 1}`, no: jointNo }));
           jointNo++;
         } else r.dowels.forEach(m => m.delete());
@@ -112,11 +117,16 @@ export function autoPlanesEach(targets, bed, margin) {
   return { planesFor: p => per.get(p.id) || [], all, cells, parts: [...per.values()].filter(x => x.length).length };
 }
 
+// v0.5.0: applica ai piani il tipo di giunto scelto per ogni taglio (mappa chiave -> tipo)
+export function withSeamTypes(planes, seams) { return planes.map(p => ({ ...p, type: (seams && seams[p.key]) || 'default' })); }
+
 // Piani equidistanti per asse dentro un bbox. counts = [nx, ny, nz] tagli
 export function evenPlanes(bb, counts) {
   const planes = []; const axes = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
   const mn = [bb.min.x, bb.min.y, bb.min.z], mx = [bb.max.x, bb.max.y, bb.max.z];
-  for (let a = 0; a < 3; a++) for (let i = 1; i <= counts[a]; i++) planes.push({ n: axes[a].clone(), d: mn[a] + (mx[a] - mn[a]) * i / (counts[a] + 1) });
+  // [2026-09-28 v0.4.1] for (let a = 0; a < 3; a++) for (let i = 1; i <= counts[a]; i++) planes.push({ n: axes[a].clone(), d: mn[a] + (mx[a] - mn[a]) * i / (counts[a] + 1) });
+  // v0.5.0: ogni piano ha una chiave "X1", "Y2"... per scegliere il giunto taglio per taglio
+  for (let a = 0; a < 3; a++) for (let i = 1; i <= counts[a]; i++) planes.push({ n: axes[a].clone(), d: mn[a] + (mx[a] - mn[a]) * i / (counts[a] + 1), key: 'XYZ'[a] + i });
   return planes;
 }
 

@@ -1,6 +1,6 @@
 /* ==========================================================================
    3D STL Multipart Maker — style.css
-   Versione: 0.4.1-beta — 2026-09-28 11:19
+   Versione: 0.5.0-beta — 2026-09-28 11:35
    Tema scuro, layout a griglia: top / tools | view | panel / status
    ========================================================================== */
 :root {
@@ -116,3 +116,21 @@ body.resizing { cursor: row-resize; }
 /* v0.4.1: la barra superiore non va a capo nelle finestre strette */
 #top { overflow: hidden; }
 #top .brand, #top button, #top .explode { white-space: nowrap; flex: none; }
+
+/* v0.5.0: barra dei passi della procedura guidata (in alto sulla vista) */
+#steps { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; align-items: center; gap: 2px; background: rgba(27,31,39,.92); border: 1px solid var(--line); border-radius: 10px; padding: 4px 6px; max-width: calc(100% - 16px); overflow-x: auto; white-space: nowrap; }
+#steps .step { display: inline-flex; align-items: center; gap: 5px; background: transparent; border: 1px solid transparent; padding: 3px 8px; font-size: 12px; color: var(--tx2); }
+#steps .step i { font-style: normal; display: inline-flex; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; background: var(--bg3); border: 1px solid var(--line); font-size: 10.5px; color: var(--tx); }
+#steps .step.done i { background: var(--ok); border-color: var(--ok); color: #0c2a17; }
+#steps .step.cur { color: var(--tx); border-color: var(--acc); background: var(--acc2); }
+#steps .step:hover { color: var(--tx); border-color: var(--line); }
+#steps .arr { color: var(--line); font-size: 14px; }
+/* schede di scelta del metodo */
+#toolpanel .card { display: block; width: 100%; text-align: left; margin: 6px 0; padding: 9px 11px; }
+#toolpanel .card b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+#toolpanel .card b em { font-style: normal; font-size: 10.5px; color: #0c2a17; background: var(--ok); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; }
+#toolpanel .card span { color: var(--tx2); font-size: 12px; }
+#toolpanel .card.rec { border-color: var(--acc); }
+#toolpanel .gnav { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 14px; }
+#toolpanel .gback { margin: -4px 0 10px; }
+#toolpanel .gback button { width: 100%; background: #1d3354; border-color: var(--acc); }

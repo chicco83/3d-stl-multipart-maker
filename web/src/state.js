@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — state.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.5.0-beta — 2026-09-28 11:35
 // -----------------------------------------------------------------------------
 // Stato applicativo: elenco parti (immutabili), selezione, registro giunti,
 // cronologia undo/redo (snapshot di array di riferimenti -> costo minimo),
@@ -87,7 +87,9 @@ export const notify = k => emit(k);
 // -----------------------------------------------------------------------------
 const DEFAULTS = {
   bed: [220, 220, 250], bedMargin: 5,
-  joint: { type: 'pin', shape: 'round', count: 0, radius: 2.5, length: 8, tol: 0.2, swap: false, magD: 6, magT: 3, magClr: 0.15, depth: 0, number: true, numDepth: 0.6, face: 'flat', chamfer: 6 },
+  // [2026-09-28 v0.4.1] joint: { type: 'pin', shape: 'round', count: 0, radius: 2.5, length: 8, tol: 0.2, swap: false, magD: 6, magT: 3, magClr: 0.15, depth: 0, number: true, numDepth: 0.6, face: 'flat', chamfer: 6 },
+  // v0.5.0: + chiavetta/coda di rondine (keyW larghezza, keyH altezza, keyLen % lunghezza sezione, dvAngle svasatura)
+  joint: { type: 'pin', shape: 'round', count: 0, radius: 2.5, length: 8, tol: 0.2, swap: false, magD: 6, magT: 3, magClr: 0.15, depth: 0, number: true, numDepth: 0.6, face: 'flat', chamfer: 6, keyW: 6, keyH: 5, keyLen: 70, dvAngle: 15 },
   simplifyTol: 0.02,
 };
 export const settings = (() => {

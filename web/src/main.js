@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.4.1-beta — 2026-09-28 11:19
+// Versione: 0.5.0-beta — 2026-09-28 11:35
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { initGeo, Manifold, CrossSection, parseSTL, parse3MF, parseOBJ, weld, manFromData, dataFromMan, bboxOf, transformData } from './geo.js';
 import { state, onChange, commit, undo, redo, select, selectedParts, targetParts, makePart, withPart, settings, saveSettings, notify } from './state.js';
 import { V, initViewer, redraw, leftOrbit, drawBed, setExplode, frameAll, viewFrom, pick, toScreen, ndc, renderThumb, fitsBed } from './viewer.js';
-import { planeCut, autoPlanesEach, evenPlanes, lassoCut, paintPlane, planeFromLine } from './cuts.js';
+import { planeCut, autoPlanesEach, evenPlanes, withSeamTypes, lassoCut, paintPlane, planeFromLine } from './cuts.js';
 import * as T from './tools.js';
 import { paintStamp, sculptStamp, endSculpt, clearLayer, refreshColors, brushData } from './brush.js';
 import { stl, threeMF, stlZip, guidePDF, saveFile } from './exporter.js';
@@ -22,7 +22,8 @@ import { $, toast, run, bind, num, range, chk, sel, seg, row, btn, ICONS } from 
 // [2026-09-28 v0.2.0] const VERSION = '0.2.0-beta';
 // [2026-09-28 v0.3.0] const VERSION = '0.3.0-beta';
 // [2026-09-28 v0.4.0] const VERSION = '0.4.0-beta';
-const VERSION = '0.4.1-beta';
+// [2026-09-28 v0.4.1] const VERSION = '0.4.1-beta';
+const VERSION = '0.5.0-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================
@@ -33,8 +34,15 @@ async function boot() {
   initViewer($('#view'), $('#overlay'));
   V.onCarry = m => refreshColors(m);
   await initGeo();
-  buildToolbar(); bindGlobal(); initSplitter(); setTool('select');
-  onChange(() => { renderParts(); refreshPanelLight(); });
+  // [2026-09-28 v0.4.1] buildToolbar(); bindGlobal(); initSplitter(); setTool('select');
+  buildToolbar(); bindGlobal(); initSplitter(); setTool('guide');
+  // [2026-09-28 v0.4.1] onChange(() => { renderParts(); refreshPanelLight(); });
+  onChange(() => {
+    // v0.5.0: un'operazione di taglio completata segna il passo "Giunti e taglio"
+    const last = state.undo[state.undo.length - 1];
+    G.cutDone = state.undo.some(u => /taglio|piano|isola|corda|banda/i.test(u.label || ''));
+    void last; renderParts(); refreshPanelLight(); renderSteps();
+  });
   renderParts();
   heartbeat(); webDownloadLink();
 }
@@ -208,28 +216,87 @@ function showPreviewPlanes(planes) {
 // =============================================================================
 // PANNELLO GIUNTI (condiviso da piano, multi, auto, linea, pennello)
 // =============================================================================
-function jointForm() {
+// [2026-09-28 v0.4.1] versione precedente di jointForm():
+// function jointForm() {
+//   const j = settings.joint; let h = '';
+//   h += `<fieldset><legend>Faccia di taglio</legend><div class="row">${seg('joint.face', [['flat', 'Piana'], ['chamfer', 'Innesto rastremato']])}</div>`;
+//   if (j.face === 'chamfer') h += row('Altezza innesto', num('joint.chamfer', 1, 40, 0.5) + ' mm');
+//   h += `</fieldset><fieldset><legend>Giunti</legend><div class="row">${seg('joint.type', [['none', 'Nessuno'], ['pin', 'Perni'], ['tenon', 'Tenoni'], ['magnet', 'Magneti']])}</div>`;
+//   if (j.type === 'pin' || j.type === 'tenon') {
+//     h += row('Forma', seg('joint.shape', [['round', 'Tondo'], ['square', 'Quadro'], ['hex', 'Esagono'], ['diamond', 'Rombo']]));
+//     h += row('Quantità', num('joint.count', 0, 12, 1) + '<span class="small">0 = auto</span>');
+//     h += row('Raggio', num('joint.radius', 0.8, 15, 0.1) + ' mm');
+//     h += row('Lunghezza', num('joint.length', 2, 60, 0.5) + ' mm');
+//     h += row('Profondità', num('joint.depth', 0, 12, 0.5) + '<span class="small">mm, 0 = auto (lunghezza)</span>');
+//     h += row('Tolleranza', num('joint.tol', 0, 1, 0.05) + ' mm');
+//     if (j.type === 'pin') h += `<div class="row">${chk('joint.swap', 'Perni sull\'altra metà')}</div>`;
+//   } else if (j.type === 'magnet') {
+//     h += row('Quantità', num('joint.count', 0, 12, 1) + '<span class="small">0 = auto</span>');
+//     h += row('Diametro magnete', num('joint.magD', 2, 30, 0.5) + ' mm');
+//     h += row('Spessore magnete', num('joint.magT', 0.5, 15, 0.5) + ' mm');
+//     h += row('Gioco', num('joint.magClr', 0, 1, 0.05) + ' mm');
+//   }
+//   if (j.type !== 'none') { h += `<div class="row">${chk('joint.number', 'Incidi il numero del giunto')}</div>`; if (j.number) h += row('Prof. numero', num('joint.numDepth', 0.2, 2, 0.1) + ' mm'); }
+//   return h + '</fieldset>';
+// }
+
+// v0.5.0: aggiunti Chiavetta e Coda di rondine; i campi mostrati dipendono da
+// tutti i tipi in uso (tipo generale + tipi scelti per i singoli tagli: extra)
+const JOINT_TYPES = [['none', 'Nessuno'], ['pin', 'Perni'], ['tenon', 'Tenoni'], ['magnet', 'Magneti'], ['key', 'Chiavetta'], ['dovetail', 'Coda di rondine']];
+function jointForm(extra = []) {
   const j = settings.joint; let h = '';
+  const used = new Set([j.type, ...extra].filter(t => t && t !== 'default' && t !== 'none'));
+  const many = used.size > 1; const sub = t => many ? `<p class="small" style="margin:8px 0 2px"><b>${t}</b></p>` : '';
   h += `<fieldset><legend>Faccia di taglio</legend><div class="row">${seg('joint.face', [['flat', 'Piana'], ['chamfer', 'Innesto rastremato']])}</div>`;
   if (j.face === 'chamfer') h += row('Altezza innesto', num('joint.chamfer', 1, 40, 0.5) + ' mm');
-  h += `</fieldset><fieldset><legend>Giunti</legend><div class="row">${seg('joint.type', [['none', 'Nessuno'], ['pin', 'Perni'], ['tenon', 'Tenoni'], ['magnet', 'Magneti']])}</div>`;
-  if (j.type === 'pin' || j.type === 'tenon') {
+  h += `</fieldset><fieldset><legend>Giunti</legend><div class="row">${seg('joint.type', JOINT_TYPES.slice(0, 4))}</div><div class="row">${seg('joint.type', JOINT_TYPES.slice(4))}</div>`;
+  if (j.type === 'key') h += '<p class="small">Linguetta rettangolare lunga su una metà, sede chiusa sull\'altra: allinea bene e regge la flessione.</p>';
+  if (j.type === 'dovetail') h += '<p class="small">Profilo trapezoidale che attraversa la sezione: il pezzo si infila di lato scorrendo e non si sfila tirando.</p>';
+  if (used.has('pin') || used.has('tenon')) {
+    h += sub('Perni / Tenoni');
     h += row('Forma', seg('joint.shape', [['round', 'Tondo'], ['square', 'Quadro'], ['hex', 'Esagono'], ['diamond', 'Rombo']]));
-    h += row('Quantità', num('joint.count', 0, 12, 1) + '<span class="small">0 = auto</span>');
     h += row('Raggio', num('joint.radius', 0.8, 15, 0.1) + ' mm');
     h += row('Lunghezza', num('joint.length', 2, 60, 0.5) + ' mm');
     h += row('Profondità', num('joint.depth', 0, 12, 0.5) + '<span class="small">mm, 0 = auto (lunghezza)</span>');
-    h += row('Tolleranza', num('joint.tol', 0, 1, 0.05) + ' mm');
-    if (j.type === 'pin') h += `<div class="row">${chk('joint.swap', 'Perni sull\'altra metà')}</div>`;
-  } else if (j.type === 'magnet') {
-    h += row('Quantità', num('joint.count', 0, 12, 1) + '<span class="small">0 = auto</span>');
+  }
+  if (used.has('magnet')) {
+    h += sub('Magneti');
     h += row('Diametro magnete', num('joint.magD', 2, 30, 0.5) + ' mm');
     h += row('Spessore magnete', num('joint.magT', 0.5, 15, 0.5) + ' mm');
     h += row('Gioco', num('joint.magClr', 0, 1, 0.05) + ' mm');
   }
-  if (j.type !== 'none') { h += `<div class="row">${chk('joint.number', 'Incidi il numero del giunto')}</div>`; if (j.number) h += row('Prof. numero', num('joint.numDepth', 0.2, 2, 0.1) + ' mm'); }
+  if (used.has('key') || used.has('dovetail')) {
+    h += sub('Chiavetta / Coda di rondine');
+    h += row('Larghezza', num('joint.keyW', 2, 40, 0.5) + ' mm');
+    h += row('Altezza', num('joint.keyH', 1, 30, 0.5) + ' mm');
+    if (used.has('key')) h += row('Lunghezza', num('joint.keyLen', 10, 100, 5) + '<span class="small">% della sezione</span>');
+    if (used.has('dovetail')) h += row('Svasatura', num('joint.dvAngle', 5, 30, 1) + '<span class="small">gradi</span>');
+  }
+  if (used.size) {
+    h += sub('Comuni');
+    h += row('Quantità', num('joint.count', 0, 12, 1) + '<span class="small">0 = auto</span>');
+    h += row('Tolleranza', num('joint.tol', 0, 1, 0.05) + ' mm');
+    if (used.has('pin') || used.has('key')) h += `<div class="row">${chk('joint.swap', 'Parte sporgente sull\'altra metà')}</div>`;
+    h += `<div class="row">${chk('joint.number', 'Incidi il numero del giunto')}</div>`; if (j.number) h += row('Prof. numero', num('joint.numDepth', 0.2, 2, 0.1) + ' mm');
+  }
   return h + '</fieldset>';
 }
+
+// v0.5.0: elenco dei tagli con scelta del giunto per ciascuno ("pick per seam")
+const SEAM_TYPES = [['default', 'Come sopra'], ...JOINT_TYPES];
+function seamList(planes, showPos = true) {
+  tp.seams = tp.seams || {}; const seen = new Map();
+  for (const p of planes) if (p.key && !seen.has(p.key)) seen.set(p.key, p);
+  if (!seen.size) return '';
+  let rows = '';
+  for (const [k, p] of seen) {
+    if (!tp.seams[k]) tp.seams[k] = 'default';
+    const ax = k[0].toLowerCase();
+    rows += row(`Taglio ${k}${showPos ? ` <span class="small">${ax} = ${p.d.toFixed(0)}</span>` : ''}`, sel('tp.seams.' + k, SEAM_TYPES));
+  }
+  return `<fieldset><legend>Giunto per ogni taglio</legend><p class="small">"Come sopra" usa il tipo di giunto scelto qui sopra. X = tagli verticali trasversali, Z = tagli orizzontali.</p>${rows}</fieldset>`;
+}
+const seamExtra = () => Object.values(tp.seams || {});
 
 // =============================================================================
 // STRUMENTI
@@ -342,7 +409,7 @@ tools.multi = {
   panel: () => {
     ['nx', 'ny', 'nz'].forEach(k => { if (tp[k] === undefined) tp[k] = k === 'nz' ? 1 : 0; });
     return `${row('Tagli su X', num('tp.nx', 0, 20, 1))}${row('Tagli su Y', num('tp.ny', 0, 20, 1))}${row('Tagli su Z', num('tp.nz', 0, 20, 1))}
-    <p class="small">Totale pezzi per parte: fino a ${(tp.nx + 1) * (tp.ny + 1) * (tp.nz + 1)}</p>${jointForm()}
+    <p class="small">Totale pezzi per parte: fino a ${(tp.nx + 1) * (tp.ny + 1) * (tp.nz + 1)}</p>${jointForm(seamExtra())}${seamList(tools.multi.planes())}
     <div class="btns">${btn('doMulti', 'Taglia (Invio)', 'primary')}</div>`;
   },
   planes: () => evenPlanes(targetsBox(), [tp.nx || 0, tp.ny || 0, tp.nz || 0]),
@@ -362,7 +429,7 @@ tools.auto = {
     return `<fieldset><legend>Volume di stampa</legend>${row('X', num('bed.0', 20, 2000, 1) + ' mm')}${row('Y', num('bed.1', 20, 2000, 1) + ' mm')}${row('Z', num('bed.2', 20, 2000, 1) + ' mm')}
     ${row('Margine', num('bedMargin', 0, 50, 1) + ' mm')}</fieldset>
     <p>${r.all.length ? `Parti da tagliare: <b>${r.parts}</b> · piani: <b>${r.all.length}</b> → circa <b>${r.cells}</b> pezzi` : '<span style="color:var(--ok)">Tutte le parti entrano già nel volume di stampa ✓</span>'}</p>
-    ${jointForm()}<div class="btns">${btn('doAuto', 'Taglia (Invio)', 'primary')}</div>`;
+    ${jointForm(seamExtra())}${seamList(r.all, false)}<div class="btns">${btn('doAuto', 'Taglia (Invio)', 'primary')}</div>`;
   },
   enter() { setExplodeUI(0); V.helpers.add(previewGroup); showPreviewPlanes(autoPlanesEach(targetParts(), settings.bed, settings.bedMargin).all); },
   exit() { showPreviewPlanes([]); },
@@ -647,6 +714,123 @@ tools.help = {
    ${Object.values(tools).filter(t => t.hk).map(t => `<tr><td>${t.title}</td><td><kbd>${t.hk.toUpperCase()}</kbd></td></tr>`).join('')}</table>`,
 };
 
+
+// =============================================================================
+// v0.5.0 — PROCEDURA GUIDATA
+// Accompagna l'utente nella sequenza: 1 Modello → 2 Stampante → 3 Orienta →
+// 4 Metodo di taglio → 5 Giunti e taglio → 6 Controllo → 7 Esporta.
+// Una barra dei passi (in alto sulla vista) mostra dove si è e cosa è fatto;
+// ogni passo è cliccabile. Gli strumenti manuali restano disponibili e, se la
+// guida è attiva, mostrano il pulsante "Torna alla guida".
+// =============================================================================
+const G = { step: 0, active: false, cutDone: false, exported: false, method: 'auto', visited: new Set() };
+const STEPS = [
+  { t: 'Modello', d: 'Carica il modello da dividere' },
+  { t: 'Stampante', d: 'Volume di stampa della tua stampante' },
+  { t: 'Orienta', d: 'Posizione e scala (facoltativo)' },
+  { t: 'Metodo', d: 'Come tagliare il modello' },
+  { t: 'Giunti e taglio', d: 'Scegli i giunti ed esegui il taglio' },
+  { t: 'Controllo', d: 'Verifica i pezzi prima di esportare' },
+  { t: 'Esporta', d: 'Salva i file per lo slicer' },
+];
+const MANUAL_TOOLS = ['plane', 'line', 'rope', 'band', 'paint', 'multi', 'auto'];
+const visibleParts = () => state.parts.filter(p => !p.hidden);
+const allFit = () => visibleParts().every(p => fitsBed(bboxOf(p.data).getSize(new THREE.Vector3()), settings.bed));
+// stato di completamento di ogni passo (per la barra)
+function stepDone(i) {
+  switch (i) {
+    case 0: return state.parts.length > 0;
+    case 1: case 2: case 3: return G.visited.has(i) && state.parts.length > 0;
+    case 4: return G.cutDone;
+    case 5: return G.visited.has(5) && G.cutDone && allFit();
+    case 6: return G.exported;
+  }
+  return false;
+}
+function renderSteps() {
+  const el = $('#steps'); if (!el) return;
+  el.innerHTML = STEPS.map((st, i) => {
+    const cls = ['step', stepDone(i) ? 'done' : '', (toolName === 'guide' && G.step === i) ? 'cur' : ''].join(' ');
+    return `<button class="${cls}" data-act="gstep" data-s="${i}" title="${st.d}"><i>${stepDone(i) ? '✓' : i + 1}</i>${st.t}</button>`;
+  }).join('<span class="arr">›</span>');
+}
+function gotoStep(i) {
+  G.step = Math.max(0, Math.min(STEPS.length - 1, i)); G.visited.add(G.step);
+  $('#hint').textContent = tools.guide.desc;
+  if (toolName !== 'guide') setTool('guide'); else { tools.guide.enter(); renderPanel(); }
+  renderSteps();
+}
+// piani proposti per il passo 5 (auto o multi) con il giunto di ogni taglio
+function guidePlanes() {
+  if (G.method === 'multi') return { all: tools.multi.planes(), forPart: null };
+  const r = autoPlanesEach(targetParts(), settings.bed, settings.bedMargin);
+  return { all: r.all, forPart: r.planesFor, info: r };
+}
+const card = (act, title, text, rec = false, extra = '') => `<button class="card${rec ? ' rec' : ''}" data-act="${act}" ${extra}><b>${title}${rec ? ' <em>consigliato</em>' : ''}</b><span>${text}</span></button>`;
+const navBtns = (nextLabel = 'Avanti →', nextDisabled = false) => `<div class="btns gnav">${G.step > 0 ? btn('gprev', '← Indietro') : ''}<span class="grow"></span>${G.step < STEPS.length - 1 ? btn('gnext', nextLabel, 'primary', nextDisabled ? 'disabled' : '') : ''}</div>`;
+
+tools.guide = {
+  short: 'Guida', title: 'Procedura guidata', icon: 'guide', hk: 'u', orbit: true,
+  get desc() { return `Passo ${G.step + 1} di ${STEPS.length} — ${STEPS[G.step].d}.`; },
+  enter() {
+    G.active = true; G.visited.add(G.step);
+    showPreviewPlanes([]); V.helpers.add(previewGroup);
+    if (G.step === 4) showPreviewPlanes(guidePlanes().all);
+    if (G.step === 5) setExplodeUI(0.45); else setExplodeUI(0);
+    renderSteps();
+  },
+  exit() { showPreviewPlanes([]); renderSteps(); },
+  onParam(k) {
+    if (k && k.startsWith('bed')) { drawBed(); renderParts(); }
+    if (G.step === 4) showPreviewPlanes(guidePlanes().all);
+    renderPanel(); renderSteps();
+  },
+  onParts() { if (G.step === 4) showPreviewPlanes(guidePlanes().all); renderSteps(); },
+  panel() {
+    const n = visibleParts().length; const bb = targetsBox(visibleParts()); const sz = bb.getSize(new THREE.Vector3());
+    const dims = `${sz.x.toFixed(0)} × ${sz.y.toFixed(0)} × ${sz.z.toFixed(0)} mm`;
+    switch (G.step) {
+      case 0: return n ? `<p>Modello caricato: <b>${n}</b> ${n === 1 ? 'parte' : 'parti'}, ingombro <b>${dims}</b>.</p>
+          <p class="small">Puoi aggiungere altri file con Apri o trascinandoli nella finestra.</p><div class="btns">${btn('open', 'Apri altri file…')}</div>${navBtns()}`
+        : `<p>Trascina un file <b>STL, 3MF o OBJ</b> nella finestra oppure:</p><div class="btns">${btn('open', 'Apri file…', 'primary')}${btn('demo', 'Modello di prova')}</div>${navBtns('Avanti →', true)}`;
+      case 1: {
+        const fit = allFit();
+        return `<p>Imposta il volume di stampa: i pezzi verranno tagliati per starci dentro.</p>
+          ${row('X', num('bed.0', 20, 2000, 1) + ' mm')}${row('Y', num('bed.1', 20, 2000, 1) + ' mm')}${row('Z', num('bed.2', 20, 2000, 1) + ' mm')}${row('Margine', num('bedMargin', 0, 50, 1) + ' mm')}
+          <div class="btns">${btn('preset', 'Ender 220', 'mini', 'data-b="220,220,250"')}${btn('preset', 'Prusa 250×210', 'mini', 'data-b="250,210,210"')}${btn('preset', 'Bambu 256', 'mini', 'data-b="256,256,256"')}${btn('preset', 'Bambu A1 mini', 'mini', 'data-b="180,180,180"')}</div>
+          <p>Modello: <b>${dims}</b> — ${fit ? '<span style="color:var(--ok)">entra già nel volume ✓ (puoi comunque dividerlo)</span>' : '<span style="color:var(--warn)">più grande del volume: va diviso</span>'}</p>${navBtns()}`;
+      }
+      case 2: return `<p>Facoltativo: ruotare o scalare il modello prima di tagliarlo può ridurre il numero di pezzi.</p>
+          <div class="btns">${btn('gbest', 'Orientamento migliore')}${btn('grot', 'Ruota 90° X', '', 'data-ax="x"')}${btn('grot', 'Ruota 90° Y', '', 'data-ax="y"')}${btn('grot', 'Ruota 90° Z', '', 'data-ax="z"')}${btn('gscale', 'Scala %…')}</div>
+          <p class="small">Per spostare o ruotare a mano usa lo strumento <b>Sposta (G)</b>, poi torna qui.</p>${navBtns('Avanti →')}`;
+      case 3: return `<p>Come vuoi dividere il modello?</p>
+          ${card('gmethod', 'Automatico', 'Calcola i tagli perché ogni pezzo entri nella stampante.', true, 'data-m="auto"')}
+          ${card('gmethod', 'Griglia (multi-piano)', 'Scegli tu quanti tagli su X, Y e Z, equidistanti.', false, 'data-m="multi"')}
+          ${card('gmethod', 'Manuale', 'Taglio dove vuoi tu: piano, linea, corda, banda o pennello.', false, 'data-m="manual"')}${navBtns('Avanti →', true)}`;
+      case 4: {
+        if (G.method === 'manual') return `<p>Scegli lo strumento di taglio, esegui il taglio e poi premi <b>Torna alla guida</b>:</p>
+          <div class="btns">${['plane', 'line', 'rope', 'band', 'paint'].map(t => btn('tool', tools[t].short || tools[t].title, '', `data-tool="${t}"`)).join('')}</div>
+          <p class="small">Suggerimento: prima di tagliare imposta i giunti nel pannello dello strumento.</p>${navBtns('Avanti →', !G.cutDone)}`;
+        const gp = guidePlanes();
+        let head = '';
+        if (G.method === 'multi') { ['nx', 'ny', 'nz'].forEach(k => { if (tp[k] === undefined) tp[k] = k === 'nz' ? 1 : 0; }); head = `${row('Tagli su X', num('tp.nx', 0, 20, 1))}${row('Tagli su Y', num('tp.ny', 0, 20, 1))}${row('Tagli su Z', num('tp.nz', 0, 20, 1))}`; }
+        else head = gp.all.length ? `<p>Piani proposti: <b>${gp.all.length}</b> → circa <b>${gp.info.cells}</b> pezzi (in arancione nella vista).</p>` : '<p style="color:var(--ok)">Il modello entra già nel volume: nessun taglio necessario. Puoi passare al controllo o scegliere il metodo Griglia.</p>';
+        return `${head}${jointForm(seamExtra())}${seamList(gp.all, G.method === 'multi')}
+          <div class="btns">${btn('gcut', 'Taglia', 'primary', gp.all.length ? '' : 'disabled')}${G.cutDone ? btn('undo', 'Annulla taglio') : ''}</div>${navBtns('Avanti →', !G.cutDone && gp.all.length > 0)}`;
+      }
+      case 5: {
+        const bad = visibleParts().filter(p => !fitsBed(bboxOf(p.data).getSize(new THREE.Vector3()), settings.bed));
+        return `<p>Pezzi: <b>${n}</b> · giunti: <b>${state.jointLog.length}</b>. La vista è esplosa per vedere i giunti (slider <b>Esplodi</b> in alto).</p>
+          ${bad.length ? `<p style="color:var(--warn)">${bad.length} pezzi non entrano ancora nel volume: ${bad.slice(0, 4).map(p => esc(p.name)).join(', ')}${bad.length > 4 ? '…' : ''}</p><div class="btns">${btn('gstep', 'Rifai il taglio', '', 'data-s="4"')}</div>` : '<p style="color:var(--ok)">Tutti i pezzi entrano nel volume di stampa ✓</p>'}
+          <div class="btns">${btn('gbest', 'Orienta tutti i pezzi per la stampa')}${btn('garrange', 'Disponi sul piano')}</div>
+          <p class="small">Clicca un pezzo per selezionarlo; con Modello (K) puoi ispezionarlo o ripararlo.</p>${navBtns()}`;
+      }
+      case 6: return `${tools.export.panel()}${G.exported ? '<p style="color:var(--ok)">File salvati ✓ — nella guida PDF trovi l\'ordine di montaggio.</p>' : ''}${navBtns()}`;
+    }
+    return '';
+  },
+};
+
 // =============================================================================
 // AZIONI (pulsanti data-act)
 // =============================================================================
@@ -666,8 +850,10 @@ const act = {
   flip: () => { setPlane(planeNormal().negate(), null); renderPanel(); },
   pcenter: () => { setPlane(planeNormal(), targetsBox().getCenter(new THREE.Vector3())); renderPanel(); },
   doPlane: () => cutWith([{ n: planeNormal(), d: planeObj.position.dot(planeNormal()) }], 'Taglio a piano'),
-  doMulti: () => cutWith(tools.multi.planes(), 'Multi-piano'),
-  doAuto: () => { const r = autoPlanesEach(targetParts(), settings.bed, settings.bedMargin); if (!r.all.length) return toast('Tutte le parti entrano già nel volume di stampa', 'ok'); cutWith(r.planesFor, 'Auto multi-piano'); },
+  // [2026-09-28 v0.4.1] doMulti: () => cutWith(tools.multi.planes(), 'Multi-piano'),
+  doMulti: () => cutWith(withSeamTypes(tools.multi.planes(), tp.seams), 'Multi-piano'),
+  // [2026-09-28 v0.4.1] doAuto: () => { ... cutWith(r.planesFor, 'Auto multi-piano'); },
+  doAuto: () => { const r = autoPlanesEach(targetParts(), settings.bed, settings.bedMargin); if (!r.all.length) return toast('Tutte le parti entrano già nel volume di stampa', 'ok'); cutWith(p => withSeamTypes(r.planesFor(p), tp.seams), 'Auto multi-piano'); },
   doBand: () => {
     if (band.length < 3) return toast('Servono almeno 3 punti', 'warn');
     const pts = band.map(p => { const q = toNdc(p); return [q.x, q.y]; });
@@ -712,6 +898,21 @@ const act = {
   del: () => { const sp = selectedParts(); if (!sp.length) return; commit(state.parts.filter(p => !sp.includes(p)), 'Elimina'); },
   // esporta
   exZip: () => doExport('zip'), ex3mf: () => doExport('3mf'), exStl: () => doExport('stl'), exPdf: () => doExport('pdf'),
+  // v0.5.0: azioni della procedura guidata
+  guide: () => gotoStep(G.step),
+  gstep: el => gotoStep(parseInt(el.dataset.s, 10)),
+  gnext: () => gotoStep(G.step + 1),
+  gprev: () => gotoStep(G.step - 1),
+  gmethod: el => { G.method = el.dataset.m; gotoStep(4); },
+  gbest: () => { const ids = visibleParts().filter(p => p.kind !== 'dowel').map(p => p.id); if (!ids.length) return; select(ids); act.best(); },
+  grot: el => { const ids = visibleParts().map(p => p.id); if (!ids.length) return; select(ids); act.rot(el); setTimeout(() => { select([]); T.dropToBed(visibleParts()); }, 50); },
+  gscale: () => { select(visibleParts().map(p => p.id)); act.scalePct(); },
+  garrange: () => { select([]); act.arrange(); },
+  gcut: () => {
+    const gp = guidePlanes(); if (!gp.all.length) return;
+    if (G.method === 'multi') cutWith(withSeamTypes(gp.all, tp.seams), 'Multi-piano', () => gotoStep(5));
+    else cutWith(p => withSeamTypes(gp.forPart(p), tp.seams), 'Auto multi-piano', () => gotoStep(5));
+  },
   preset: el => { settings.bed = el.dataset.b.split(',').map(Number); saveSettings(); drawBed(); renderParts(); renderPanel(); },
 };
 
@@ -719,10 +920,12 @@ function eachSel(label, fn) {
   const sp = selectedParts(); if (!sp.length) return toast('Seleziona una parte', 'warn');
   run(label, () => { commit(state.parts.map(p => sp.includes(p) ? fn(p) : p), label); tp.inspect = null; renderPanel(); });
 }
-function cutWith(planes, label) {
+// [2026-09-28 v0.4.1] function cutWith(planes, label) {
+// v0.5.0: callback opzionale "done" chiamata se il taglio ha creato parti
+function cutWith(planes, label, done) {
   if (Array.isArray(planes) && !planes.length) return toast('Nessun piano di taglio', 'warn');
   const tg = targetParts(); if (!tg.length) return toast('Nessuna parte da tagliare', 'warn');
-  run(label, () => { const r = planeCut(tg, planes, settings.joint, label); toast(r.created ? `Create ${r.created} parti${r.dowels ? ` + ${r.dowels} tenoni` : ''}` : 'Il piano non attraversa nessuna parte', r.created ? 'ok' : 'warn'); tool.onParts && tool.onParts(); });
+  run(label, () => { const r = planeCut(tg, planes, settings.joint, label); toast(r.created ? `Create ${r.created} parti${r.dowels ? ` + ${r.dowels} tenoni` : ''}` : 'Il piano non attraversa nessuna parte', r.created ? 'ok' : 'warn'); tool.onParts && tool.onParts(); if (r.created && done) done(); });
 }
 function paintCut(opts, label) {
   const part = paintMesh && state.parts.find(x => x.id === paintMesh.userData.partId);
@@ -753,7 +956,8 @@ async function doExport(kind) {
     if (kind === '3mf') saved = await saveFile(`${title}_${stamp}.3mf`, threeMF(parts), 'model/3mf', '3MF');
     if (kind === 'pdf') saved = await saveFile(`${title}_guida_${stamp}.pdf`, guide(), 'application/pdf', 'PDF');
     if (kind === 'zip') saved = await saveFile(`${title}_${stamp}.zip`, stlZip(parts, { [`${title}.3mf`]: threeMF(parts), [`${title}_guida_montaggio.pdf`]: guide() }), 'application/zip', 'ZIP');
-    if (saved) toast(`Salvato: ${saved}`, 'ok');
+    // [2026-09-28 v0.4.1] if (saved) toast(`Salvato: ${saved}`, 'ok');
+    if (saved) { toast(`Salvato: ${saved}`, 'ok'); G.exported = true; renderSteps(); if (toolName === 'guide') renderPanel(); }
   });
 }
 
@@ -761,7 +965,7 @@ async function doExport(kind) {
 // GESTIONE STRUMENTI E PANNELLO
 // =============================================================================
 function buildToolbar() {
-  const nav = $('#tools'); const groups = [['Base', ['select', 'move']], ['Taglio', ['plane', 'multi', 'auto', 'line', 'rope', 'band', 'paint']], ['Modella', ['sculpt', 'shapes', 'bool', 'inlay']], ['File', ['model', 'export']]];
+  const nav = $('#tools'); const groups = [['Base', ['guide', 'select', 'move']], ['Taglio', ['plane', 'multi', 'auto', 'line', 'rope', 'band', 'paint']], ['Modella', ['sculpt', 'shapes', 'bool', 'inlay']], ['File', ['model', 'export']]];
   for (const [g, list] of groups) {
     nav.insertAdjacentHTML('beforeend', `<div class="grp">${g}</div>`);
     for (const k of list) { const t = tools[k]; nav.insertAdjacentHTML('beforeend', `<button data-act="tool" data-tool="${k}" title="${t.title} (${t.hk.toUpperCase()})"><svg viewBox="0 0 24 24">${ICONS[t.icon]}</svg>${t.short || t.title.split(' ')[0]}</button>`); }
@@ -774,11 +978,14 @@ function setTool(name) {
   document.querySelectorAll('#tools button, #top button[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === name));
   leftOrbit(!!tool.orbit); $('#hint').textContent = tool.desc;
   if (tool.enter) tool.enter();
-  renderPanel(); drawOverlay();
+  renderPanel(); drawOverlay(); renderSteps();
 }
 function renderPanel() {
   const el = $('#toolpanel');
-  el.innerHTML = `<h3>${tool.title}</h3><p class="desc">${tool.desc}</p>${tool.panel()}`;
+  // [2026-09-28 v0.4.1] el.innerHTML = `<h3>${tool.title}</h3><p class="desc">${tool.desc}</p>${tool.panel()}`;
+  // v0.5.0: con la guida attiva gli altri strumenti mostrano "Torna alla guida"
+  const back = G.active && toolName !== 'guide' ? `<div class="gback">${btn('guide', `↩ Torna alla guida (passo ${G.step + 1}: ${STEPS[G.step].t})`)}</div>` : '';
+  el.innerHTML = `${back}<h3>${tool.title}</h3><p class="desc">${tool.desc}</p>${tool.panel()}`;
   bind(el, tp, (k, v) => { tool.onParam && tool.onParam(k, v); }, renderPanel);
 }
 // aggiornamento leggero dopo cambi di stato (selezione/parti)
@@ -786,7 +993,9 @@ let _lastSel = '';
 function refreshPanelLight() {
   const s = [...state.selected].join(',');
   if (s !== _lastSel) { _lastSel = s; if (tool.onSel) tool.onSel(); }
-  if (['multi', 'auto', 'export', 'model', 'bool', 'inlay', 'band'].includes(toolName)) { tool.onParts && tool.onParts(); renderPanel(); }
+  // v0.5.0: nella guida, appena caricato il primo modello si passa al passo Stampante
+  if (toolName === 'guide' && G.step === 0 && state.parts.length && !G.visited.has(1)) { gotoStep(1); return; }
+  if (['multi', 'auto', 'export', 'model', 'bool', 'inlay', 'band', 'guide'].includes(toolName)) { tool.onParts && tool.onParts(); renderPanel(); }
   if (toolName === 'move' && !pivot && !faceMode) attachPivot();
 }
 function setExplodeUI(v) { $('#explode').value = v; setExplode(v); }

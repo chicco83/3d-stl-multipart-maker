@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — claude.md
-**Versione: 0.4.1-beta — 2026-09-28 11:20**
+**Versione: 0.5.0-beta — 2026-09-28 11:36**
 
 Istruzioni per chi (persona o AI) lavora su questo progetto.
 
@@ -20,7 +20,7 @@ Programma: **3D STL Multipart Maker** · repository GitHub: `3d-stl-multipart-ma
 
 ## Build
 ```
-./build.sh 0.4.2-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
+./build.sh 0.5.1-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
 ```
 Output: `release/3D-STL-Multipart-Maker_v<versione>_<AAAAMMGG-HHMM>.exe`
 

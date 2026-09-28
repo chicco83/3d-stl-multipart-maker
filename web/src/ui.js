@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — ui.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.5.0-beta — 2026-09-28 11:35
 // -----------------------------------------------------------------------------
 // Utilità d'interfaccia: notifiche, overlay di attesa, costruttori di campi
 // del pannello e binding automatico campo <-> impostazioni.
@@ -88,6 +88,8 @@ export function bind(root, tp, onChange, rerender) {
 
 // Icone SVG degli strumenti (tratti semplici)
 export const ICONS = {
+  // v0.5.0: icona della procedura guidata
+  guide: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   select: '<path d="M5 3l14 8-6 2-3 6z"/>',
   move: '<path d="M12 2v20M2 12h20M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3"/>',
   plane: '<path d="M3 16l6-9h12l-6 9z"/><path d="M12 3v18" stroke-dasharray="2 2"/>',

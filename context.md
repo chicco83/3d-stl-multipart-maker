@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.4.1-beta — 2026-09-28 11:20**
+**Versione: 0.5.0-beta — 2026-09-28 11:36**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -32,14 +32,14 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 | `geo.js` | Init WASM, conversioni Manifold ↔ dati ↔ BufferGeometry, saldatura vertici (hash a indirizzamento aperto), parser STL/3MF/OBJ, utilità |
 | `state.js` | Parti **immutabili** `{id,name,color,data:{vp,tv},joints,kind,hidden}`, selezione ordinata, registro giunti, undo/redo a snapshot (40 livelli), impostazioni in localStorage |
 | `viewer.js` | Scena Z-up, piano e volume di stampa, sincronizzazione mesh, vista esplosa, raycast, miniature per il PDF |
-| `joints.js` | Taglio planare con giunti: sistema locale del piano, sezione d'interfaccia, innesto rastremato a gradini, perni/tenoni/magneti con campionamento "farthest point", numeri a 7 segmenti incisi |
+| `joints.js` | Taglio planare con giunti: sistema locale del piano, sezione d'interfaccia, innesto rastremato a gradini, perni/tenoni/magneti con campionamento "farthest point", **chiavetta e coda di rondine** (0.5.0) lungo l'asse principale (PCA) di ogni isola della sezione, numeri a 7 segmenti incisi |
 | `cuts.js` | Piano, multi-piano, auto multi-piano (per parte), lazo prospettico (Corda/Banda), piano dal pennello (PCA del bordo), piano da linea |
 | `tools.js` | Primitive con bordi, booleane con gioco (Minkowski), inlay, riduzione dettaglio, ispezione, riparazione rapida/volumetrica, separazione, orientamento migliore, disponi |
 | `brush.js` | Pittura/maschera/scultura su adiacenza CSR con flood-fill entro il raggio |
 | `exporter.js` | STL binario, 3MF multi-oggetto, ZIP, guida PDF, salvataggio |
 | `main.js` (0.2.0) | anche lo splitter della sezione Parti |
 | `ui.js` | Toast, overlay attesa, campi e binding automatico `data-k` |
-| `main.js` | Strumenti, pannelli, eventi mouse/tastiera, import, export |
+| `main.js` | Strumenti, pannelli, eventi mouse/tastiera, import, export; dalla 0.5.0 **procedura guidata** (oggetto `G`, `tools.guide`, barra `#steps`) e scelta del giunto per taglio (`seamList`, chiavi piano `X1/Y1/Z1`, `withSeamTypes`) |
 
 ## Repository e distribuzione (dalla 0.4.0)
 - GitHub: `3d-stl-multipart-maker` (pubblico, licenza MIT).

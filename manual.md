@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — Manuale utente
-**Versione: 0.4.1-beta — 2026-09-28 11:20**
+**Versione: 0.5.0-beta — 2026-09-28 11:36**
 
 ## 1. Avvio
 - Fai doppio clic su `3D-STL-Multipart-Maker_v0.3.0-beta_….exe`. Non serve installare nulla.
@@ -13,6 +13,16 @@
 - I modelli restano sul tuo PC: il calcolo avviene nel browser, nulla viene caricato.
 - In Firefox/Safari i file esportati finiscono nei Download invece della finestra "Salva con nome".
 - Il pulsante **⬇ Versione Windows** in alto apre la pagina delle Release da cui scaricare l'exe portable.
+
+## 1bis. Procedura guidata (consigliata)
+All'avvio si apre la **Guida**, che accompagna passo passo. La barra in alto sulla vista mostra i 7 passi (✓ = completato); cliccali per spostarti.
+1. **Modello** — apri il file o il modello di prova (si passa da soli al passo 2).
+2. **Stampante** — volume di stampa e margine (preset rapidi). Vedi subito se il modello entra.
+3. **Orienta** — facoltativo: orientamento migliore, rotazioni di 90°, scala.
+4. **Metodo** — *Automatico* (consigliato), *Griglia* (numero di tagli per asse) o *Manuale* (Piano, Linea, Corda, Banda, Pennello: al termine premi **Torna alla guida**).
+5. **Giunti e taglio** — scegli il tipo di giunto e, se vuoi, un giunto diverso per ogni taglio; premi **Taglia**.
+6. **Controllo** — vista esplosa, verifica che tutti i pezzi entrino nel volume, orienta e disponi i pezzi.
+7. **Esporta** — ZIP con STL, 3MF e guida PDF.
 
 ## 2. Interfaccia
 | Zona | Contenuto |
@@ -50,6 +60,9 @@ Tutti i tagli piani usano le opzioni **Faccia di taglio** e **Giunti** (vedi §5
   - *Perni* — sporgono da una metà, fori nell'altra. Opzione *Perni sull'altra metà*.
   - *Tenoni* — fori in entrambe le metà + parti "Tenone G…" da stampare a parte (compaiono accanto al modello).
   - *Magneti* — sedi su entrambe le facce (diametro, spessore, gioco).
+  - *Chiavetta* — linguetta rettangolare lunga su una metà e sede sull'altra (larghezza, altezza, lunghezza in % della sezione).
+  - *Coda di rondine* — profilo trapezoidale che attraversa la sezione: le metà si infilano scorrendo di lato e non si sfilano tirando (larghezza, altezza, svasatura).
+- **Giunto per ogni taglio:** in Multi-piano, Auto e nella guida l'elenco "Giunto per ogni taglio" permette un tipo diverso per ciascun taglio (X1, Y1, Z1…); "Come sopra" usa il tipo generale.
 - **Forma:** tondo, quadro, esagono, rombo · **Quantità:** 0 = automatica in base alla sezione.
 - **Raggio, Lunghezza, Profondità** (0 = uguale alla lunghezza), **Tolleranza** (default 0,2 mm).
 - **Incidi il numero del giunto:** stesso numero sulle due facce da unire (profondità default 0,6 mm; il trattino sotto indica il verso).
@@ -79,7 +92,7 @@ Tutti i tagli piani usano le opzioni **Faccia di taglio** e **Giunti** (vedi §5
 | Ctrl+A | Seleziona tutto | Esc | Deseleziona |
 | Canc | Elimina | F | Inquadra |
 | `[` `]` | Dimensione pennello | Invio | Esegui taglio |
-| V G P M A L R B T S H O I K X | Strumenti | W / E / R | Modalità gizmo |
+| U V G P M A L R B T S H O I K X | Strumenti (U = Guida) | W / E / R | Modalità gizmo |
 
 ## 10. Stampante
 Pulsante *Stampante*: volume X/Y/Z e margine per il taglio automatico (preset Ender 220, Bambu/Prusa 250, Bambu 256). Le impostazioni vengono ricordate.
