@@ -1,0 +1,19 @@
+{
+  "name": "3d-stl-multipart-maker",
+  "version": "0.4.0-beta",
+  "description": "3D STL Multipart Maker - frontend web",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "author": "Cristiano Zecchi",
+  "license": "MIT",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
+    "jspdf": "^4.2.1",
+    "manifold-3d": "^3.5.4",
+    "three": "^0.186.1",
+    "three-mesh-bvh": "^0.9.15"
+  },
+  "private": true
+}

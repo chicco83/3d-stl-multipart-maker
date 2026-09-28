@@ -1,0 +1,51 @@
+# =============================================================================
+# 3D STL Multipart Maker — pages.yml
+# Versione: 0.4.0-beta — 2026-09-28 10:32
+# Pubblica la versione web su GitHub Pages a ogni push su main:
+# compila il frontend (web/) con esbuild e carica web/dist come sito statico.
+# =============================================================================
+name: Pubblica versione web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Compila il frontend
+        working-directory: web
+        run: |
+          npm ci
+          BUILD_STAMP="web ${GITHUB_SHA::7}" node build.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

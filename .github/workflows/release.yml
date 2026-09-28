@@ -1,0 +1,41 @@
+# =============================================================================
+# 3D STL Multipart Maker — release.yml
+# Versione: 0.4.0-beta — 2026-09-28 10:32
+# Alla pubblicazione di un tag "v*" (es. v0.4.0-beta) compila l'eseguibile
+# Windows portable con build.sh e crea la Release GitHub con l'exe allegato.
+# I tag che contengono "-" (beta, rc) vengono marcati come pre-release.
+# =============================================================================
+name: Release Windows
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.24'
+          cache-dependency-path: launcher/go.sum
+      - name: Strumento per icona e manifest dell'exe
+        run: go install github.com/akavel/rsrc@v0.10.2 && echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Compila l'exe
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          chmod +x build.sh && ./build.sh "$VER"
+      - name: Crea la Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRE=""; case "$GITHUB_REF_NAME" in *-*) PRE="--prerelease";; esac
+          NOTES="Versione web: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/  —  Novità: vedi changelog.md"
+          gh release create "$GITHUB_REF_NAME" release/*.exe --title "3D STL Multipart Maker $GITHUB_REF_NAME" --notes "$NOTES" $PRE

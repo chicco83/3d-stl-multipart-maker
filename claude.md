@@ -1,0 +1,36 @@
+# 3D STL Multipart Maker — claude.md
+**Versione: 0.4.0-beta — 2026-09-28 10:34**
+
+Istruzioni per chi (persona o AI) lavora su questo progetto.
+
+## Regole obbligatorie
+1. **Versioning**: a ogni revisione incrementa la versione (SemVer: `MAJOR.MINOR.PATCH[-beta]`) e aggiornala:
+   - in testa a **ogni** file modificato (`Versione: X.Y.Z — AAAA-MM-GG HH:MM`);
+   - nella costante `VERSION` di `web/src/main.js`;
+   - nel nome dell'eseguibile (lo fa `./build.sh X.Y.Z`, che aggiunge data e ora).
+2. Aggiorna sempre i tre documenti:
+   - `context.md` — obiettivo, scelte tecniche, architettura, limiti;
+   - `changelog.md` — voce nuova con data/ora e modifiche (Aggiunto / Modificato / Corretto);
+   - `manual.md` — manuale utente allineato alle funzioni.
+3. Quando si corregge codice esistente, lasciare la versione precedente **commentata** con la data della modifica, poi il codice nuovo.
+4. Spiegazioni sul funzionamento come commenti nelle sezioni del codice (in italiano).
+
+## Nome
+Programma: **3D STL Multipart Maker** · repository GitHub: `3d-stl-multipart-maker`.
+
+## Build
+```
+./build.sh 0.4.1-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
+```
+Output: `release/3D-STL-Multipart-Maker_v<versione>_<AAAAMMGG-HHMM>.exe`
+
+## Pubblicazione
+- Push su `main` → sito GitHub Pages aggiornato (workflow `pages.yml`).
+- Nuova versione: aggiornare versione e documenti, commit, poi `git tag vX.Y.Z-beta && git push origin vX.Y.Z-beta` → Release con exe (workflow `release.yml`).
+- Primo caricamento da Windows: `pubblica-github.ps1`.
+- I workflow si modificano in `_github/workflows/` (la cartella `.github` non è scrivibile dagli strumenti remoti): lo script li copia in `.github/workflows/` prima del commit.
+
+## Struttura
+- `web/` frontend (sorgenti in `web/src`, statici in `web/public`, bundle `web/build.mjs`)
+- `launcher/` eseguibile Go che incorpora `web/dist`: `main.go` (server + fallback), `native_windows.go` (finestra WebView2, Salva con nome), `app.manifest`
+- `icon.ico` icona dell'exe
