@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker
-**Versione: 0.5.1-beta — 2026-09-28 11:41**
+**Versione: 0.5.2-beta — 2026-09-28 11:47**
 
 ![3D STL Multipart Maker](web/public/og.png)
 
@@ -57,7 +57,7 @@ All'avvio si apre la **Guida**, che accompagna passo passo. La barra in alto sul
 | In basso | Suggerimento dello strumento e statistiche |
 
 - **Navigazione:** tasto destro = orbita · centrale = sposta · rotella = zoom. In *Seleziona* anche il sinistro orbita.
-- **Selezione:** click su una parte (Ctrl/Shift = aggiungi). Gli strumenti lavorano sulle parti selezionate, o su tutte quelle visibili se non c'è selezione.
+- **Selezione:** click su una parte (Ctrl/Shift = aggiungi); le parti selezionate hanno un contorno azzurro. Gli strumenti lavorano sulle parti selezionate, o su tutte quelle visibili se non c'è selezione.
 - **Elenco parti:** doppio click sul nome = rinomina · pallino = mostra/nascondi · ⚠ = non entra nel volume di stampa.
 
 ## 4. Aprire un modello
@@ -136,7 +136,7 @@ Note tecniche: [context.md](context.md) · Novità: [changelog.md](changelog.md)
 
 ## Compilare
 ```
-./build.sh 0.5.1-beta      # Node >= 18, Go >= 1.22 (opz. rsrc per icona e manifest)
+./build.sh 0.5.2-beta      # Node >= 18, Go >= 1.22 (opz. rsrc per icona e manifest)
 ```
 Pubblicazione automatica: ogni push su `main` aggiorna il sito (workflow *Pubblica versione web*); ogni tag `v*` crea una Release con l'exe (workflow *Release Windows*). Primo caricamento da Windows: `pubblica-github.ps1`.
 

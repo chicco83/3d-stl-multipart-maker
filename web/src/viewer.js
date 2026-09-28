@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — viewer.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.5.2-beta — 2026-09-28 11:47
 // -----------------------------------------------------------------------------
 // Vista 3D (three.js): scena Z-up come le stampanti 3D, piano di stampa,
 // volume di stampa, sincronizzazione mesh <-> parti, selezione con click,
@@ -16,6 +16,11 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import { state, onChange, settings } from './state.js';
 import { geomFromData } from './geo.js';
+// v0.5.2: contorno luminoso delle parti selezionate (post-processing)
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 // Raycast accelerato su tutte le mesh
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -70,13 +75,27 @@ export function initViewer(container, overlay) {
   drawBed();
   new ResizeObserver(resize).observe(container); resize();
   onChange(k => { if (k === 'parts' || k === 'selection') syncMeshes(); });
-  const loop = () => { requestAnimationFrame(loop); if (V.needsRender) { V.needsRender = false; r.render(s, V.camera); } };
+  // v0.5.2: pipeline di rendering con contorno di selezione
+  //   RenderPass (scena) -> OutlinePass (bordo azzurro sulle parti selezionate,
+  //   visibile anche dietro altri oggetti, più tenue) -> OutputPass (colore)
+  V.composer = new EffectComposer(r);
+  V.composer.addPass(new RenderPass(s, V.camera));
+  V.outline = new OutlinePass(new THREE.Vector2(1, 1), s, V.camera);
+  V.outline.visibleEdgeColor.set(0x6fb4ff); V.outline.hiddenEdgeColor.set(0x2b5d9e);
+  V.outline.edgeStrength = 6; V.outline.edgeThickness = 1.6; V.outline.edgeGlow = 0.4;
+  V.composer.addPass(V.outline);
+  V.composer.addPass(new OutputPass());
+  resize();
+  // [2026-09-28 v0.5.1] const loop = () => { requestAnimationFrame(loop); if (V.needsRender) { V.needsRender = false; r.render(s, V.camera); } };
+  const loop = () => { requestAnimationFrame(loop); if (V.needsRender) { V.needsRender = false; V.composer.render(); } };
   loop();
 }
 
 function resize() {
   const w = V.el.clientWidth, h = V.el.clientHeight;
   V.renderer.setSize(w, h); V.camera.aspect = w / Math.max(h, 1); V.camera.updateProjectionMatrix();
+  // v0.5.2: anche la pipeline del contorno segue le dimensioni della vista
+  if (V.composer) { V.composer.setPixelRatio(window.devicePixelRatio); V.composer.setSize(w, h); }
   V.needsRender = true;
 }
 export const redraw = () => { V.needsRender = true; };
@@ -121,13 +140,17 @@ function syncMeshes() {
     m.visible = !p.hidden;
     m.material.color.set(p.color);
     const sel = state.selected.has(p.id);
-    m.material.emissive.set(sel ? 0x333333 : 0x000000);
+    // [2026-09-28 v0.5.1] m.material.emissive.set(sel ? 0x333333 : 0x000000);
+    // v0.5.2: tinta azzurra più evidente sulle parti selezionate (oltre al contorno)
+    m.material.emissive.set(sel ? 0x1c4a8a : 0x000000);
     // evidenzia le parti fuori dal volume di stampa
     const bb = m.geometry.boundingBox; const sz = bb.getSize(new THREE.Vector3());
     const fits = fitsBed(sz, [bx, by, bz]);
     m.userData.fits = fits;
     m.material.wireframe = false;
   }
+  // v0.5.2: parti selezionate -> contorno
+  if (V.outline) V.outline.selectedObjects = [...V.meshes.values()].filter(m => m.visible && state.selected.has(m.userData.partId));
   applyExplode();
 }
 

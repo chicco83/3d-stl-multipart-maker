@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
 # 3D STL Multipart Maker — build.sh
-# Versione: 0.5.1-beta — 2026-09-28 11:43
+# Versione: 0.5.2-beta — 2026-09-28 11:47
 # -----------------------------------------------------------------------------
 # Compila l'intero progetto (da Linux, macOS o WSL; serve Node >= 18 e Go >= 1.22):
 #   1. bundle del frontend (web/) con esbuild -> web/dist
 #   2. copia di dist nel launcher Go (incorporato con go:embed)
 #   3. cross-compilazione dell'eseguibile Windows portable (senza console)
-# Uso:  ./build.sh 0.5.1-beta
+# Uso:  ./build.sh 0.5.2-beta
 # =============================================================================
 set -euo pipefail
-VER="${1:-0.5.1-beta}"
+VER="${1:-0.5.2-beta}"
 STAMP="$(date +%Y%m%d-%H%M)"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 

@@ -1,5 +1,10 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.5.1-beta — 2026-09-28 11:43**
+**Versione corrente: 0.5.2-beta — 2026-09-28 11:47**
+
+## [0.5.2-beta] — 2026-09-28 11:47
+### Corretto
+- Evidenziazione delle parti selezionate quasi invisibile: ora le parti selezionate hanno un **contorno azzurro luminoso** (visibile anche quando sono coperte da altre parti, più tenue) e una tinta azzurra più marcata.
+
 
 ## [0.5.1-beta] — 2026-09-28 11:43
 ### Modificato

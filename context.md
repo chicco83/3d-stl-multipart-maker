@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.5.1-beta — 2026-09-28 11:43**
+**Versione: 0.5.2-beta — 2026-09-28 11:47**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -32,7 +32,7 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 |---|---|
 | `geo.js` | Init WASM, conversioni Manifold ↔ dati ↔ BufferGeometry, saldatura vertici (hash a indirizzamento aperto), parser STL/3MF/OBJ, utilità |
 | `state.js` | Parti **immutabili** `{id,name,color,data:{vp,tv},joints,kind,hidden}`, selezione ordinata, registro giunti, undo/redo a snapshot (40 livelli), impostazioni in localStorage |
-| `viewer.js` | Scena Z-up, piano e volume di stampa, sincronizzazione mesh, vista esplosa, raycast, miniature per il PDF |
+| `viewer.js` | Scena Z-up, pipeline EffectComposer con OutlinePass per il contorno di selezione (0.5.2), piano e volume di stampa, sincronizzazione mesh, vista esplosa, raycast, miniature per il PDF |
 | `joints.js` | Taglio planare con giunti: sistema locale del piano, sezione d'interfaccia, innesto rastremato a gradini, perni/tenoni/magneti con campionamento "farthest point", **chiavetta e coda di rondine** (0.5.0) lungo l'asse principale (PCA) di ogni isola della sezione, numeri a 7 segmenti incisi |
 | `cuts.js` | Piano, multi-piano, auto multi-piano (per parte), lazo prospettico (Corda/Banda), piano dal pennello (PCA del bordo), piano da linea |
 | `tools.js` | Primitive con bordi, booleane con gioco (Minkowski), inlay, riduzione dettaglio, ispezione, riparazione rapida/volumetrica, separazione, orientamento migliore, disponi |
