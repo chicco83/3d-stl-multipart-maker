@@ -1,5 +1,16 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.4.0-beta — 2026-09-28 10:34**
+**Versione corrente: 0.4.1-beta — 2026-09-28 11:20**
+
+## [0.4.1-beta] — 2026-09-28 11:20
+### Corretto
+- Anteprima del link (WhatsApp, Telegram, social) mostrava il vecchio nome: un commento in `index.html` conteneva il vecchio tag del titolo e veniva letto come titolo. Commento riscritto senza tag.
+- Il pulsante "⬇ Versione Windows" e il README puntavano a `releases/latest`, che non mostra le pre-release (beta): ora aprono l'elenco delle Release.
+- La barra superiore andava a capo nelle finestre strette.
+- La vecchia cartella `sorgenti/` finita nel repository viene esclusa (`.gitignore`) e rimossa dal repository dallo script.
+
+### Aggiunto
+- Metadati Open Graph/Twitter e descrizione: anteprima con titolo, descrizione e immagine `og.png` (1200×630).
+
 
 ## [0.4.0-beta] — 2026-09-28 10:34
 ### Aggiunto

@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- ==========================================================================
      3D STL Multipart Maker — index.html
-     Versione: 0.3.0-beta — 2026-09-28 10:24
+     Versione: 0.4.1-beta — 2026-09-28 11:19
      Struttura dell'interfaccia: barra superiore, barra strumenti a sinistra,
      vista 3D al centro (canvas + overlay SVG per i disegni), pannello
      opzioni/parti a destra, barra di stato in basso.
@@ -10,14 +10,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- [2026-09-28 v0.2.0] <title>Model Splitter Evo</title> -->
+<!-- [2026-09-28 v0.4.1] il commento con il vecchio tag del titolo (v0.2.0, nome precedente)
+     veniva letto dalle anteprime link (WhatsApp ecc.) come titolo: rimosso. -->
 <title>3D STL Multipart Maker</title>
+<!-- v0.4.1: metadati per anteprime link (Open Graph / Twitter) e motori di ricerca -->
+<meta name="description" content="Dividi modelli 3D troppo grandi per la stampante in parti stampabili, con perni, tenoni o magneti e guida di montaggio. Gratis, tutto nel browser.">
+<meta name="theme-color" content="#14171d">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="3D STL Multipart Maker">
+<meta property="og:title" content="3D STL Multipart Maker">
+<meta property="og:description" content="Dividi modelli STL/3MF in parti stampabili con giunti e guida di montaggio. Tutto nel browser, nessun upload.">
+<meta property="og:url" content="https://chicco83.github.io/3d-stl-multipart-maker/">
+<meta property="og:image" content="https://chicco83.github.io/3d-stl-multipart-maker/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="it_IT">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="top">
-  <!-- [2026-09-28 v0.2.0] <div class="brand"><img src="icon.png" alt=""><b>Model Splitter</b><span>Evo</span><em id="ver"></em></div> -->
+  <!-- [2026-09-28 v0.2.0] intestazione precedente: logo + nome "Model Splitter" (grassetto) + "Evo" (colorato) -->
   <div class="brand"><img src="icon.png" alt=""><b>3D STL</b><span>Multipart Maker</span><em id="ver"></em></div>
   <button data-act="open" title="Apri STL / 3MF / OBJ (Ctrl+O)">Apri</button>
   <button data-act="undo" title="Annulla (Ctrl+Z)">&#8630; Annulla</button>

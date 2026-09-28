@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — build.mjs
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.4.1-beta — 2026-09-28 11:19
 // Bundle del frontend con esbuild -> dist/ (app.js, manifold.wasm, html, css)
 // =============================================================================
 import { build } from 'esbuild';
@@ -17,5 +17,7 @@ await build({
   platform: 'browser',
 });
 cpSync('node_modules/manifold-3d/manifold.wasm', 'dist/manifold.wasm');
-for (const f of ['index.html', 'style.css', 'icon.png']) cpSync('public/' + f, 'dist/' + f);
+// [2026-09-28 v0.4.0] for (const f of ['index.html', 'style.css', 'icon.png']) cpSync('public/' + f, 'dist/' + f);
+// v0.4.1: aggiunta og.png (immagine anteprima link)
+for (const f of ['index.html', 'style.css', 'icon.png', 'og.png']) cpSync('public/' + f, 'dist/' + f);
 console.log('OK', BUILD);

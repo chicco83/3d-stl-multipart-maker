@@ -1,6 +1,6 @@
 /* ==========================================================================
    3D STL Multipart Maker — style.css
-   Versione: 0.4.0-beta — 2026-09-28 10:32
+   Versione: 0.4.1-beta — 2026-09-28 11:19
    Tema scuro, layout a griglia: top / tools | view | panel / status
    ========================================================================== */
 :root {
@@ -112,3 +112,7 @@ body.resizing { cursor: row-resize; }
 /* v0.4.0: link "Versione Windows" mostrato solo nella versione web */
 #top a.dl { color: var(--tx); text-decoration: none; background: var(--bg3); border: 1px solid var(--acc); border-radius: 6px; padding: 5px 10px; margin-right: 4px; }
 #top a.dl:hover { background: var(--acc2); }
+
+/* v0.4.1: la barra superiore non va a capo nelle finestre strette */
+#top { overflow: hidden; }
+#top .brand, #top button, #top .explode { white-space: nowrap; flex: none; }

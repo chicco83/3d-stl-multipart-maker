@@ -1,6 +1,6 @@
 ﻿# =============================================================================
 # 3D STL Multipart Maker — pubblica-github.ps1
-# Versione: 0.4.0-beta — 2026-09-28 10:33
+# Versione: 0.4.1-beta — 2026-09-28 11:19
 # -----------------------------------------------------------------------------
 # Pubblica il progetto su GitHub in un solo passaggio (da eseguire su Windows):
 #  1. installa Git e GitHub CLI se mancano (winget);
@@ -12,7 +12,8 @@
 # Uso (PowerShell nella cartella del progetto):
 #   powershell -ExecutionPolicy Bypass -File .\pubblica-github.ps1
 # =============================================================================
-param([string]$Version = "0.4.0-beta", [string]$Repo = "3d-stl-multipart-maker")
+# [2026-09-28 v0.4.0] param([string]$Version = "0.4.0-beta", [string]$Repo = "3d-stl-multipart-maker")
+param([string]$Version = "0.4.1-beta", [string]$Repo = "3d-stl-multipart-maker")
 # i comandi esterni (git, gh) segnalano gli errori con $LASTEXITCODE: controllo manuale
 $ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot
@@ -26,7 +27,9 @@ if (-not (Get-Command gh  -ErrorAction SilentlyContinue)) { Write-Host "Installo
 
 # ---- 2. login (si apre il browser, solo la prima volta) -----------------------
 gh auth status 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) { gh auth login --hostname github.com --git-protocol https --web }
+# serve anche lo scope "workflow" per caricare i file .github/workflows
+if ($LASTEXITCODE -ne 0) { gh auth login --hostname github.com --git-protocol https --web --scopes workflow }
+elseif (-not (gh auth status 2>&1 | Select-String -Quiet "'workflow'")) { gh auth refresh --hostname github.com --scopes workflow }
 gh auth setup-git | Out-Null
 $user = gh api user --jq .login
 Write-Host "Account GitHub: $user"
@@ -43,6 +46,8 @@ if (Test-Path "_github\workflows") {
 if (-not (Test-Path .git)) { git init -b main | Out-Null }
 if (-not (git config user.name))  { git config user.name  (gh api user --jq '.name // .login') }
 if (-not (git config user.email)) { $id = gh api user --jq .id; git config user.email "$id+$user@users.noreply.github.com" }
+# v0.4.1: le cartelle ignorate già caricate in passato (es. sorgenti/) vengono tolte dal repository
+foreach ($d in @("sorgenti")) { if (git ls-files $d) { git rm -r --cached --quiet $d } }
 git add -A
 git diff --cached --quiet
 if ($LASTEXITCODE -ne 0) { git commit -m "3D STL Multipart Maker v$Version" | Out-Null }
@@ -69,5 +74,5 @@ git push origin $tag
 Write-Host ""
 Write-Host "Fatto. Tra 2-3 minuti saranno pronti:" -ForegroundColor Green
 Write-Host "  Sito web : https://$user.github.io/$Repo/"
-Write-Host "  Release  : https://github.com/$user/$Repo/releases/latest"
+Write-Host "  Release  : https://github.com/$user/$Repo/releases"
 Write-Host "  Stato    : https://github.com/$user/$Repo/actions"

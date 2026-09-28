@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — Manuale utente
-**Versione: 0.4.0-beta — 2026-09-28 10:34**
+**Versione: 0.4.1-beta — 2026-09-28 11:20**
 
 ## 1. Avvio
 - Fai doppio clic su `3D-STL-Multipart-Maker_v0.3.0-beta_….exe`. Non serve installare nulla.
@@ -12,7 +12,7 @@
 - Stesse funzioni, nel browser (Chrome o Edge consigliati): `https://<utente>.github.io/3d-stl-multipart-maker/`.
 - I modelli restano sul tuo PC: il calcolo avviene nel browser, nulla viene caricato.
 - In Firefox/Safari i file esportati finiscono nei Download invece della finestra "Salva con nome".
-- Il pulsante **⬇ Versione Windows** in alto scarica l'exe portable dall'ultima Release.
+- Il pulsante **⬇ Versione Windows** in alto apre la pagina delle Release da cui scaricare l'exe portable.
 
 ## 2. Interfaccia
 | Zona | Contenuto |

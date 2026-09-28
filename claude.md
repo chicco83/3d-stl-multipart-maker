@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — claude.md
-**Versione: 0.4.0-beta — 2026-09-28 10:34**
+**Versione: 0.4.1-beta — 2026-09-28 11:20**
 
 Istruzioni per chi (persona o AI) lavora su questo progetto.
 
@@ -20,7 +20,7 @@ Programma: **3D STL Multipart Maker** · repository GitHub: `3d-stl-multipart-ma
 
 ## Build
 ```
-./build.sh 0.4.1-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
+./build.sh 0.4.2-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
 ```
 Output: `release/3D-STL-Multipart-Maker_v<versione>_<AAAAMMGG-HHMM>.exe`
 
@@ -29,6 +29,9 @@ Output: `release/3D-STL-Multipart-Maker_v<versione>_<AAAAMMGG-HHMM>.exe`
 - Nuova versione: aggiornare versione e documenti, commit, poi `git tag vX.Y.Z-beta && git push origin vX.Y.Z-beta` → Release con exe (workflow `release.yml`).
 - Primo caricamento da Windows: `pubblica-github.ps1`.
 - I workflow si modificano in `_github/workflows/` (la cartella `.github` non è scrivibile dagli strumenti remoti): lo script li copia in `.github/workflows/` prima del commit.
+
+## Attenzione
+- Mai tag HTML dentro i commenti di `<head>` in `index.html`: le anteprime dei link li leggono (es. vecchio `<title>`). Per le versioni precedenti usare una descrizione testuale.
 
 ## Struttura
 - `web/` frontend (sorgenti in `web/src`, statici in `web/public`, bundle `web/build.mjs`)

@@ -1,12 +1,12 @@
 # 3D STL Multipart Maker
-**Versione: 0.4.0-beta — 2026-09-28 10:33**
+**Versione: 0.4.1-beta — 2026-09-28 11:19**
 
 Divide modelli 3D troppo grandi per la stampante in parti stampabili, con perni, tenoni o sedi per magneti e numerazione dei giunti.
 Tutto il calcolo avviene sul tuo computer: nessun modello viene caricato in rete.
 
 ## Usala subito
 - **Web:** apri la pagina GitHub Pages del repository (Chrome o Edge consigliati).
-- **Windows portable:** scarica l'exe dall'ultima [Release](../../releases/latest) e avvialo con doppio clic (nessuna installazione).
+- **Windows portable:** scarica l'exe dalla pagina [Releases](../../releases) e avvialo con doppio clic (nessuna installazione).
 
 ## Funzioni
 - Import STL, 3MF, OBJ · export STL, 3MF, ZIP con **guida di montaggio PDF**

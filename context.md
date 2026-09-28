@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.4.0-beta — 2026-09-28 10:34**
+**Versione: 0.4.1-beta — 2026-09-28 11:20**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -46,7 +46,8 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 - **Web:** GitHub Pages `https://<utente>.github.io/3d-stl-multipart-maker/` — pubblicato dal workflow `pages.yml` a ogni push su `main` (build di `web/` → `web/dist`). Percorsi relativi, nessun backend.
 - **Windows:** workflow `release.yml` su tag `v*` → `build.sh` su Ubuntu → Release con l'exe (pre-release se il tag contiene `-`).
 - `pubblica-github.ps1`: primo caricamento dal PC Windows (Git + GitHub CLI).
-- Rilevamento ambiente in `main.js`: `IS_LOCAL` (127.0.0.1/localhost) abilita il ping al launcher; sul web compare il link alla Release.
+- Anteprima link: meta Open Graph in `index.html` + `web/public/og.png` (1200×630). Nei commenti di `<head>` non inserire tag HTML (i parser delle anteprime li leggono).
+- Rilevamento ambiente in `main.js`: `IS_LOCAL` (127.0.0.1/localhost) abilita il ping al launcher; sul web compare il link alle Release (pagina elenco: `latest` esclude le pre-release).
 
 ## Convenzioni
 - Unità: millimetri. Asse Z verso l'alto (come le stampanti).

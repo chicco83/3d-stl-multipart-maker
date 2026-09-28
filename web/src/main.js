@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.4.0-beta — 2026-09-28 10:32
+// Versione: 0.4.1-beta — 2026-09-28 11:19
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -21,7 +21,8 @@ import { $, toast, run, bind, num, range, chk, sel, seg, row, btn, ICONS } from 
 // [2026-09-28 v0.1.0] const VERSION = '0.1.0-beta';
 // [2026-09-28 v0.2.0] const VERSION = '0.2.0-beta';
 // [2026-09-28 v0.3.0] const VERSION = '0.3.0-beta';
-const VERSION = '0.4.0-beta';
+// [2026-09-28 v0.4.0] const VERSION = '0.4.0-beta';
+const VERSION = '0.4.1-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================
@@ -55,7 +56,9 @@ function webDownloadLink() {
   const repo = location.pathname.split('/').filter(Boolean)[0] || '3d-stl-multipart-maker';
   if (!owner) return;
   const a = document.createElement('a');
-  a.href = `https://github.com/${owner}/${repo}/releases/latest`; a.target = '_blank'; a.rel = 'noopener';
+  // [2026-09-28 v0.4.0] a.href = `https://github.com/${owner}/${repo}/releases/latest`; a.target = '_blank'; a.rel = 'noopener';
+  // v0.4.1: "latest" ignora le pre-release (le beta): si apre l'elenco delle release
+  a.href = `https://github.com/${owner}/${repo}/releases`; a.target = '_blank'; a.rel = 'noopener';
   a.className = 'dl'; a.textContent = '⬇ Versione Windows'; a.title = 'Scarica l\'eseguibile portable per Windows (GitHub Releases)';
   document.querySelector('#top .grow').after(a);
 }

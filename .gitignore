@@ -1,4 +1,4 @@
-# 3D STL Multipart Maker — .gitignore — Versione: 0.4.0-beta — 2026-09-28 10:32
+# 3D STL Multipart Maker — .gitignore — Versione: 0.4.1-beta — 2026-09-28 11:19
 node_modules/
 web/dist/
 launcher/dist/
@@ -7,3 +7,5 @@ release/
 *.exe
 # copia di lavoro dei workflow (vedi pubblica-github.ps1)
 _github/
+# copie di vecchie versioni presenti nella cartella locale (non fanno parte del repository)
+sorgenti/

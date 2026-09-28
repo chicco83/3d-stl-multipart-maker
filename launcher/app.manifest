@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!-- 3D STL Multipart Maker — app.manifest — Versione: 0.4.0-beta — 2026-09-28 10:32
+<!-- 3D STL Multipart Maker — app.manifest — Versione: 0.4.1-beta — 2026-09-28 11:19
      DPI per-monitor (testo nitido su schermi ad alta risoluzione), controlli
      comuni v6 (dialoghi moderni), compatibilità Windows 10/11. -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
-  <assemblyIdentity version="0.4.0.0" processorArchitecture="amd64" name="Zecchi.STLMultipartMaker" type="win32"/>
+  <assemblyIdentity version="0.4.1.0" processorArchitecture="amd64" name="Zecchi.STLMultipartMaker" type="win32"/>
   <description>3D STL Multipart Maker</description>
   <dependency><dependentAssembly>
     <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
