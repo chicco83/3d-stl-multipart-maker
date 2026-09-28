@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.5.0-beta — 2026-09-28 11:35
+// Versione: 0.5.1-beta — 2026-09-28 11:42
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -17,13 +17,16 @@ import * as T from './tools.js';
 import { paintStamp, sculptStamp, endSculpt, clearLayer, refreshColors, brushData } from './brush.js';
 import { stl, threeMF, stlZip, guidePDF, saveFile } from './exporter.js';
 import { $, toast, run, bind, num, range, chk, sel, seg, row, btn, ICONS } from './ui.js';
+// v0.5.1: manuale integrato (testo del README)
+import { openManual, manualOpen } from './manual.js';
 
 // [2026-09-28 v0.1.0] const VERSION = '0.1.0-beta';
 // [2026-09-28 v0.2.0] const VERSION = '0.2.0-beta';
 // [2026-09-28 v0.3.0] const VERSION = '0.3.0-beta';
 // [2026-09-28 v0.4.0] const VERSION = '0.4.0-beta';
 // [2026-09-28 v0.4.1] const VERSION = '0.4.1-beta';
-const VERSION = '0.5.0-beta';
+// [2026-09-28 v0.5.0] const VERSION = '0.5.0-beta';
+const VERSION = '0.5.1-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================
@@ -707,7 +710,8 @@ tools.settings = {
 };
 tools.help = {
   title: 'Guida rapida', hidden: true, orbit: true, desc: `3D STL Multipart Maker v${VERSION} (build ${BUILD}) — tutto gira in locale, nessun file viene caricato in rete.`,
-  panel: () => `<table>
+  // [2026-09-28 v0.5.0] panel: () => `<table>...` (solo tabella scorciatoie)
+  panel: () => `<div class="btns">${btn('manual', '📖 Apri il manuale completo (F1)', 'primary')}</div><table>
    <tr><td>Orbita</td><td>Tasto destro (o sinistro in Seleziona)</td></tr><tr><td>Sposta vista</td><td>Tasto centrale</td></tr><tr><td>Zoom</td><td>Rotella</td></tr>
    <tr><td>Annulla / Ripeti</td><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></td></tr><tr><td>Apri</td><td><kbd>Ctrl+O</kbd></td></tr><tr><td>Inquadra</td><td><kbd>F</kbd></td></tr>
    <tr><td>Seleziona tutto</td><td><kbd>Ctrl+A</kbd></td></tr><tr><td>Elimina</td><td><kbd>Canc</kbd></td></tr><tr><td>Pennello</td><td><kbd>[</kbd> <kbd>]</kbd> dimensione</td></tr>
@@ -767,7 +771,10 @@ function guidePlanes() {
   return { all: r.all, forPart: r.planesFor, info: r };
 }
 const card = (act, title, text, rec = false, extra = '') => `<button class="card${rec ? ' rec' : ''}" data-act="${act}" ${extra}><b>${title}${rec ? ' <em>consigliato</em>' : ''}</b><span>${text}</span></button>`;
-const navBtns = (nextLabel = 'Avanti →', nextDisabled = false) => `<div class="btns gnav">${G.step > 0 ? btn('gprev', '← Indietro') : ''}<span class="grow"></span>${G.step < STEPS.length - 1 ? btn('gnext', nextLabel, 'primary', nextDisabled ? 'disabled' : '') : ''}</div>`;
+// [2026-09-28 v0.5.0] navBtns senza il collegamento al manuale
+// v0.5.1: pulsante "Manuale" che apre il capitolo pertinente al passo
+const STEP_SECTION = ['Aprire un modello', 'Stampante', 'Modellazione', 'Strumenti di taglio', 'Faccia di taglio', 'Procedura guidata', 'Esporta'];
+const navBtns = (nextLabel = 'Avanti →', nextDisabled = false) => `<div class="btns gnav">${G.step > 0 ? btn('gprev', '← Indietro') : ''}${btn('manual', '📖 Manuale', 'mini', `data-sec="${STEP_SECTION[G.step]}"`)}<span class="grow"></span>${G.step < STEPS.length - 1 ? btn('gnext', nextLabel, 'primary', nextDisabled ? 'disabled' : '') : ''}</div>`;
 
 tools.guide = {
   short: 'Guida', title: 'Procedura guidata', icon: 'guide', hk: 'u', orbit: true,
@@ -898,6 +905,8 @@ const act = {
   del: () => { const sp = selectedParts(); if (!sp.length) return; commit(state.parts.filter(p => !sp.includes(p)), 'Elimina'); },
   // esporta
   exZip: () => doExport('zip'), ex3mf: () => doExport('3mf'), exStl: () => doExport('stl'), exPdf: () => doExport('pdf'),
+  // v0.5.1: manuale (eventuale capitolo in data-sec)
+  manual: el => openManual(el && el.dataset ? el.dataset.sec : undefined),
   // v0.5.0: azioni della procedura guidata
   guide: () => gotoStep(G.step),
   gstep: el => gotoStep(parseInt(el.dataset.s, 10)),
@@ -1046,6 +1055,9 @@ function bindGlobal() {
 
   // tastiera
   window.addEventListener('keydown', e => {
+    // v0.5.1: F1 apre il manuale; a manuale aperto le scorciatoie dell'app sono sospese
+    if (e.key === 'F1') { e.preventDefault(); openManual(); return; }
+    if (manualOpen()) return;
     if (e.target.matches('input:not([type=range]):not([type=checkbox]), select, textarea')) return;
     const k = e.key.toLowerCase();
     if (e.ctrlKey && k === 'z') { e.preventDefault(); e.shiftKey ? act.redo() : act.undo(); return; }

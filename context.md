@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.5.0-beta — 2026-09-28 11:36**
+**Versione: 0.5.1-beta — 2026-09-28 11:43**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -12,6 +12,7 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 | Motore geometrico | **manifold-3d 3.5** (WASM) | Booleane robuste e garantite "manifold", split per piano, sezioni 2D (CrossSection con offset), hull, Minkowski, semplificazione, level-set per la riparazione volumetrica |
 | Vista 3D | **three.js 0.186** + **three-mesh-bvh** | Rendering WebGL, gizmo TransformControls, raycast accelerato per pennelli e selezione |
 | Export | **fflate** (ZIP/3MF), **jsPDF** (guida montaggio) | Leggeri, nessuna dipendenza nativa |
+| Manuale | **README.md** + **marked** (dalla 0.5.1) | Una sola fonte: home GitHub e finestra Manuale dell'app |
 | Bundle | **esbuild** (ESM) | Un solo `app.js` + `manifold.wasm` |
 | Eseguibile | **Go 1.24** con `go:embed` | Cross-compilazione da Linux senza toolchain Windows; exe unico ~7,5 MB; nessuna console (`-H windowsgui`) |
 | Finestra | **WebView2 nativo** (`github.com/jchv/go-webview2`, Go puro) — dalla 0.2.0 | Finestra propria del programma con il motore di sistema presente su Windows 10/11; "Salva con nome" nativo via comdlg32. Fallback: Edge/Chrome `--app` (modalità 0.1.0) |
@@ -38,6 +39,7 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 | `brush.js` | Pittura/maschera/scultura su adiacenza CSR con flood-fill entro il raggio |
 | `exporter.js` | STL binario, 3MF multi-oggetto, ZIP, guida PDF, salvataggio |
 | `main.js` (0.2.0) | anche lo splitter della sezione Parti |
+| `manual.js` (0.5.1) | Manuale integrato: README.md incorporato in build (`__MANUAL__`), reso con `marked`, indice, ricerca; mostrato fino al marcatore `fine-manuale` |
 | `ui.js` | Toast, overlay attesa, campi e binding automatico `data-k` |
 | `main.js` | Strumenti, pannelli, eventi mouse/tastiera, import, export; dalla 0.5.0 **procedura guidata** (oggetto `G`, `tools.guide`, barra `#steps`) e scelta del giunto per taglio (`seamList`, chiavi piano `X1/Y1/Z1`, `withSeamTypes`) |
 

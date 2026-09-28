@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — launcher (main.go)
-// Versione: 0.5.0-beta — 2026-09-28 11:36
+// Versione: 0.5.1-beta — 2026-09-28 11:43
 // -----------------------------------------------------------------------------
 // Eseguibile portable per Windows (nessuna installazione):
 //  1. contiene l'interfaccia web (cartella dist) incorporata con go:embed;
@@ -36,7 +36,8 @@ import (
 // [2026-09-28 v0.3.0] const appVersion = "0.3.0-beta"
 // [2026-09-28 v0.4.0] const appVersion = "0.4.0-beta"
 // [2026-09-28 v0.4.1] const appVersion = "0.4.1-beta"
-const appVersion = "0.5.0-beta"
+// [2026-09-28 v0.5.0] const appVersion = "0.5.0-beta"
+const appVersion = "0.5.1-beta"
 
 //go:embed dist
 var dist embed.FS

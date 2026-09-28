@@ -12,6 +12,7 @@
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
     "manifold-3d": "^3.5.4",
+    "marked": "^18.0.14",
     "three": "^0.186.1",
     "three-mesh-bvh": "^0.9.15"
   },

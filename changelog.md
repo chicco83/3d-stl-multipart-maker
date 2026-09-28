@@ -1,5 +1,16 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.5.0-beta — 2026-09-28 11:36**
+**Versione corrente: 0.5.1-beta — 2026-09-28 11:43**
+
+## [0.5.1-beta] — 2026-09-28 11:43
+### Modificato
+- **Manuale unificato nel README.md** (sezione *Manuale*): visibile direttamente nella home del repository GitHub. `manual.md` ora rimanda al README.
+- README riorganizzato: presentazione con immagine, link diretti a versione web e Release, funzioni in breve, manuale completo, sezione per sviluppatori.
+
+### Aggiunto
+- **Manuale dentro l'app**: pulsante **"? Manuale"** in alto a destra e tasto **F1**. Finestra con indice dei capitoli (evidenzia quello visibile), ricerca nel testo con evidenziazione, tabelle e immagini formattate, link "Apri su GitHub". Il testo è il README incorporato in fase di build (una sola fonte).
+- Nella procedura guidata, pulsante **📖 Manuale** che apre il capitolo pertinente al passo corrente.
+- Dipendenza `marked` (MIT) per la formattazione del manuale.
+
 
 ## [0.5.0-beta] — 2026-09-28 11:36
 ### Aggiunto

@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — claude.md
-**Versione: 0.5.0-beta — 2026-09-28 11:36**
+**Versione: 0.5.1-beta — 2026-09-28 11:43**
 
 Istruzioni per chi (persona o AI) lavora su questo progetto.
 
@@ -11,7 +11,7 @@ Istruzioni per chi (persona o AI) lavora su questo progetto.
 2. Aggiorna sempre i tre documenti:
    - `context.md` — obiettivo, scelte tecniche, architettura, limiti;
    - `changelog.md` — voce nuova con data/ora e modifiche (Aggiunto / Modificato / Corretto);
-   - `manual.md` — manuale utente allineato alle funzioni.
+   - `manual.md` — dalla 0.5.1 rimanda al README: **il manuale utente si aggiorna in `README.md`** (sezione *Manuale*, fino al marcatore `fine-manuale`), che è anche il testo del manuale dentro l'app.
 3. Quando si corregge codice esistente, lasciare la versione precedente **commentata** con la data della modifica, poi il codice nuovo.
 4. Spiegazioni sul funzionamento come commenti nelle sezioni del codice (in italiano).
 
@@ -20,7 +20,7 @@ Programma: **3D STL Multipart Maker** · repository GitHub: `3d-stl-multipart-ma
 
 ## Build
 ```
-./build.sh 0.5.1-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
+./build.sh 0.5.2-beta     # richiede Node >= 18 e Go >= 1.22 (opz. rsrc per icona+manifest)
 ```
 Output: `release/3D-STL-Multipart-Maker_v<versione>_<AAAAMMGG-HHMM>.exe`
 
