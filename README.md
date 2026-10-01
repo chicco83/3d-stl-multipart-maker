@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker
-**Versione: 0.5.2-beta — 2026-09-28 11:47**
+**Versione: 0.6.0-beta — 2026-10-01 11:03**
 
 ![3D STL Multipart Maker](web/public/og.png)
 
@@ -10,6 +10,7 @@ Tutto il calcolo avviene sul tuo computer: nessun modello viene caricato in rete
 - **Web:** [chicco83.github.io/3d-stl-multipart-maker](https://chicco83.github.io/3d-stl-multipart-maker/) — Chrome o Edge consigliati.
 - **Windows portable:** scarica l'exe dalla pagina [Releases](https://github.com/chicco83/3d-stl-multipart-maker/releases) e avvialo con doppio clic (nessuna installazione).
 - **Manuale dentro l'app:** pulsante **?** in alto a destra oppure tasto **F1**.
+- **Lingua / Language:** interfaccia in italiano e in inglese — pulsante **🌐 IT / EN** in alto a destra.
 
 ## Funzioni in breve
 - Import STL, 3MF, OBJ · export STL, 3MF, ZIP con **guida di montaggio PDF**
@@ -49,7 +50,7 @@ All'avvio si apre la **Guida**, che accompagna passo passo. La barra in alto sul
 ## 3. Interfaccia
 | Zona | Contenuto |
 |---|---|
-| Barra in alto | Apri, Annulla/Ripeti, Inquadra, viste (Iso/Alto/Fronte/Destra), slider **Esplodi**, Stampante, **?** (manuale) |
+| Barra in alto | Apri, Annulla/Ripeti, Inquadra, viste (Iso/Alto/Fronte/Destra), slider **Esplodi**, Stampante, **?** (manuale), **🌐 IT/EN** (lingua) |
 | Barra dei passi | In alto sulla vista: passi della procedura guidata |
 | Barra a sinistra | Strumenti (Base, Taglio, Modella, File) |
 | Centro | Vista 3D con piano e volume di stampa |
@@ -136,7 +137,7 @@ Note tecniche: [context.md](context.md) · Novità: [changelog.md](changelog.md)
 
 ## Compilare
 ```
-./build.sh 0.5.2-beta      # Node >= 18, Go >= 1.22 (opz. rsrc per icona e manifest)
+./build.sh 0.6.0-beta      # Node >= 18, Go >= 1.22 (opz. rsrc per icona e manifest)
 ```
 Pubblicazione automatica: ogni push su `main` aggiorna il sito (workflow *Pubblica versione web*); ogni tag `v*` crea una Release con l'exe (workflow *Release Windows*). Primo caricamento da Windows: `pubblica-github.ps1`.
 

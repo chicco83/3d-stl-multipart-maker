@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — manual.js
-// Versione: 0.5.1-beta — 2026-09-28 11:42
+// Versione: 0.6.0-beta — 2026-10-01 11:03
 // -----------------------------------------------------------------------------
 // Manuale integrato. Il testo è il README.md del repository, incorporato nel
 // bundle in fase di build (costante __MANUAL__, vedi build.mjs): una sola
@@ -11,6 +11,8 @@
 // =============================================================================
 
 import { marked } from 'marked';
+// v0.6.0: avviso nella versione inglese (il manuale è disponibile in italiano)
+import { getLang } from './i18n.js';
 
 const REPO = 'https://github.com/chicco83/3d-stl-multipart-maker';
 const SRC = typeof __MANUAL__ !== 'undefined' ? __MANUAL__ : '# Manuale\nNon disponibile in questa build.';
@@ -33,6 +35,7 @@ function build() {
   root.innerHTML = `<div class="mbox" role="dialog" aria-label="Manuale">
     <header><b>📖 Manuale</b><input type="search" placeholder="Cerca nel manuale…" aria-label="Cerca"><span class="grow"></span>
       <a class="gh" href="${REPO}#readme" target="_blank" rel="noopener">Apri su GitHub</a><button class="close" title="Chiudi (Esc)">✕</button></header>
+    <div class="langnote hidden" data-noi18n>The full manual is currently available in Italian only. Menus, guide and messages are in English; use your browser's translator for this page if needed.</div>
     <div class="mbody"><nav></nav><article>${html}</article></div></div>`;
   document.body.appendChild(root);
   const art = root.querySelector('article'), nav = root.querySelector('nav');
@@ -91,6 +94,8 @@ function build() {
 export function openManual(section) {
   if (!root) build();
   root.classList.remove('hidden');
+  // v0.6.0: in inglese mostra un avviso sulla lingua del manuale
+  const note = root.querySelector('.langnote'); if (note) note.classList.toggle('hidden', getLang() !== 'en');
   if (section) {
     const h = [...root.querySelectorAll('article h1, article h2')].find(x => x.textContent.toLowerCase().includes(section.toLowerCase()));
     if (h) setTimeout(() => h.scrollIntoView({ block: 'start' }), 0);

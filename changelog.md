@@ -1,5 +1,16 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.5.2-beta — 2026-09-28 11:47**
+**Versione corrente: 0.6.0-beta — 2026-10-01 11:03**
+
+## [0.6.0-beta] — 2026-10-01 11:03
+### Aggiunto
+- **Interfaccia in inglese**: menu, strumenti, pannelli, procedura guidata, suggerimenti, notifiche, messaggi di errore e nomi predefiniti delle parti (es. "Demo rocket", "Dowel G1-1").
+- Pulsante **🌐 IT / 🌐 EN** in alto a destra: cambio lingua immediato, senza ricaricare e senza perdere il lavoro; la scelta viene ricordata. Al primo avvio la lingua segue quella del browser/Windows (italiano → IT, altre → EN).
+- **Guida di montaggio PDF** nella lingua dell'interfaccia.
+- Nella versione inglese il manuale mostra un avviso: il testo completo è per ora in italiano.
+
+### Corretto
+- La guida PDF non riportava i nomi dei giunti Chiavetta e Coda di rondine nella tabella e nelle istruzioni.
+
 
 ## [0.5.2-beta] — 2026-09-28 11:47
 ### Corretto

@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.5.2-beta — 2026-09-28 11:47**
+**Versione: 0.6.0-beta — 2026-10-01 11:03**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -40,6 +40,7 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 | `exporter.js` | STL binario, 3MF multi-oggetto, ZIP, guida PDF, salvataggio |
 | `main.js` (0.2.0) | anche lo splitter della sezione Parti |
 | `manual.js` (0.5.1) | Manuale integrato: README.md incorporato in build (`__MANUAL__`), reso con `marked`, indice, ricerca; mostrato fino al marcatore `fine-manuale` |
+| `i18n.js` (0.6.0) | Interfaccia IT/EN: dizionario IT→EN + modelli regex; MutationObserver traduce testi e attributi del DOM conservando l'originale (cambio lingua reversibile); `t()` per PDF e nomi parti; esclusi nomi parti e manuale |
 | `ui.js` | Toast, overlay attesa, campi e binding automatico `data-k` |
 | `main.js` | Strumenti, pannelli, eventi mouse/tastiera, import, export; dalla 0.5.0 **procedura guidata** (oggetto `G`, `tools.guide`, barra `#steps`) e scelta del giunto per taglio (`seamList`, chiavi piano `X1/Y1/Z1`, `withSeamTypes`) |
 
@@ -54,7 +55,7 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 ## Convenzioni
 - Unità: millimetri. Asse Z verso l'alto (come le stampanti).
 - Ogni operazione produce nuove parti → una voce di undo.
-- Commenti e interfaccia in italiano. Versione in testa a ogni file e nel nome dell'exe.
+- Commenti in italiano; testi dell'interfaccia scritti in italiano nel codice e tradotti in inglese da `i18n.js` (aggiungere ogni nuovo testo al dizionario `DICT`). Versione in testa a ogni file e nel nome dell'exe.
 
 ## Limiti noti della beta
 - Giunti automatici solo sui tagli **piani** (piano, multi, auto, linea, pennello). Corda/Banda tagliano "a stampo" lungo la vista senza giunti.

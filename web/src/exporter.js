@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — exporter.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.6.0-beta — 2026-10-01 11:03
 // -----------------------------------------------------------------------------
 // Esportazione: STL binario, 3MF (un oggetto per parte), ZIP (STL + 3MF +
 // guida PDF), guida di montaggio PDF (jsPDF) con panoramica numerata,
@@ -12,6 +12,8 @@ import * as THREE from 'three';
 import { zipSync, strToU8 } from 'fflate';
 import { jsPDF } from 'jspdf';
 import { bboxOf } from './geo.js';
+// v0.6.0: guida PDF nella lingua dell'interfaccia
+import { getLang } from './i18n.js';
 
 const safe = s => s.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'parte';
 
@@ -70,11 +72,42 @@ export function guidePDF(title, parts, log, thumbs, opts) {
   const fix = s => String(s).replace(/[—–]/g, '-').replace(/•/g, '-').replace(/×/g, 'x').replace(/…/g, '...').replace(/[^\x00-\xFF]/g, '?');
   const _t = doc.text.bind(doc); doc.text = (s, ...a) => _t(Array.isArray(s) ? s.map(fix) : fix(s), ...a);
   const num = new Map(parts.map((p, i) => [p.name, i + 1]));
-  const typeName = { pin: 'Perni integrati', tenon: 'Tenoni sciolti', magnet: 'Sedi magneti', chamfer: 'Innesto rastremato', none: 'Nessuno' };
+  // [2026-09-28 v0.5.2] const typeName = { pin: 'Perni integrati', tenon: 'Tenoni sciolti', magnet: 'Sedi magneti', chamfer: 'Innesto rastremato', none: 'Nessuno' };
+  // v0.6.0: testi della guida in italiano o inglese (+ chiavetta e coda di rondine, prima mancanti)
+  const EN = getLang() === 'en';
+  const L = EN ? {
+    title: 'Assembly guide', parts: 'parts', joints: 'joints', jt: 'Joints', no: 'No.', type: 'Type', pa: 'Part A', pb: 'Part B', conn: 'Conn.',
+    none: 'No joints recorded.', instrT: 'Instructions by joint type', partsT: 'Parts', jl: 'Joints', locale: 'en-GB',
+    tips: ['Print each part with its largest cut face on the bed whenever possible.',
+      `Joint tolerance: ${opts.tol} mm. If the fit is too tight, sand lightly or increase the tolerance.`,
+      'The numbers engraved on the cut faces show which faces go together (same number = same joint).'],
+    instr: [['Integrated pins', 'The pins stick out of one part: push them into the holes of the matching part. A thin layer of CA or epoxy glue makes the joint permanent.'],
+      ['Loose dowels', 'Print the dowels ("Dowel G…" parts), glue them into one side first, then fit the other part.'],
+      ['Magnet seats', `Insert Ø${opts.magD}×${opts.magT} mm magnets into both seats with a drop of glue, checking the polarity before gluing the second side.`],
+      ['Key', 'The long tongue of one part slides into the slot of the other and aligns the two halves.'],
+      ['Dovetail', 'Slide the two halves together sideways along the dovetail; it cannot be pulled apart.'],
+      ['Tapered plug', 'The stepped plug of one part goes into the seat of the other and centers the two halves automatically.']],
+    typeName: { pin: 'Integrated pins', tenon: 'Loose dowels', magnet: 'Magnet seats', key: 'Key', dovetail: 'Dovetail', chamfer: 'Tapered plug', none: 'None' },
+  } : {
+    title: 'Guida di montaggio', parts: 'parti', joints: 'giunti', tipsT: 'Consigli', jt: 'Giunti', no: 'N°', type: 'Tipo', pa: 'Parte A', pb: 'Parte B', conn: 'Conn.',
+    none: 'Nessun giunto registrato.', instrT: 'Istruzioni per tipo di giunto', partsT: 'Parti', jl: 'Giunti', locale: 'it-IT',
+    tips: ['Stampa ogni parte con la faccia di taglio più ampia appoggiata al piatto quando possibile.',
+      `Tolleranza giunti: ${opts.tol} mm. Se l'accoppiamento è troppo duro, carteggia leggermente o aumenta la tolleranza.`,
+      'I numeri incisi sulle facce di taglio indicano quali facce vanno unite (stesso numero = stesso giunto).'],
+    instr: [['Perni integrati', 'I perni sporgono da una parte: inseriscili nei fori della parte corrispondente. Un velo di colla CA o epossidica rende l\'unione permanente.'],
+      ['Tenoni sciolti', 'Stampa i tenoni (parti "Tenone G…"), incollali prima in un lato e poi accoppia l\'altra parte.'],
+      ['Sedi magneti', `Inserisci magneti Ø${opts.magD}×${opts.magT} mm in entrambe le sedi con un punto di colla, verificando la polarità prima di incollare il secondo lato.`],
+      ['Chiavetta', 'La linguetta lunga di una parte entra nella sede dell\'altra e allinea le due metà.'],
+      ['Coda di rondine', 'Infila le due metà scorrendo di lato lungo la coda di rondine: non si sfilano tirando.'],
+      ['Innesto rastremato', 'Il tappo a gradini di una parte entra nella sede dell\'altra e centra automaticamente le due metà.']],
+    typeName: { pin: 'Perni integrati', tenon: 'Tenoni sciolti', magnet: 'Sedi magneti', key: 'Chiavetta', dovetail: 'Coda di rondine', chamfer: 'Innesto rastremato', none: 'Nessuno' },
+  };
+  if (EN) L.tipsT = 'Tips';
+  const typeName = L.typeName;
   // --- pagina 1: panoramica
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text('Guida di montaggio', M, 22);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text(L.title, M, 22);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
-  doc.text(`${title} — ${parts.length} parti, ${log.length} giunti — ${new Date().toLocaleString('it-IT')}`, M, 29);
+  doc.text(`${title} — ${parts.length} ${L.parts}, ${log.length} ${L.joints} — ${new Date().toLocaleString(L.locale)}`, M, 29);
   doc.setTextColor(0);
   const ov = thumbs(parts.map(p => p.id), 1200, 900, true);
   const iw = W - 2 * M, ih = iw * 0.75; doc.addImage(ov.url, 'JPEG', M, 36, iw, ih);
@@ -85,17 +118,14 @@ export function guidePDF(title, parts, log, thumbs, opts) {
     doc.setFillColor(20, 20, 20); doc.circle(x, y, 3, 'F'); doc.setTextColor(255); doc.text(String(num.get(p.name)), x, y + 1.1, { align: 'center' }); doc.setTextColor(0);
   }
   let y = 36 + ih + 10; doc.setFontSize(11);
-  const tips = [
-    'Stampa ogni parte con la faccia di taglio più ampia appoggiata al piatto quando possibile.',
-    `Tolleranza giunti: ${opts.tol} mm. Se l'accoppiamento è troppo duro, carteggia leggermente o aumenta la tolleranza.`,
-    'I numeri incisi sulle facce di taglio indicano quali facce vanno unite (stesso numero = stesso giunto).',
-  ];
-  doc.setFont('helvetica', 'bold'); doc.text('Consigli', M, y); doc.setFont('helvetica', 'normal'); y += 6;
+  // [2026-09-28 v0.5.2] const tips = [...] (solo italiano)
+  const tips = L.tips;
+  doc.setFont('helvetica', 'bold'); doc.text(L.tipsT, M, y); doc.setFont('helvetica', 'normal'); y += 6;
   for (const t of tips) { const lines = doc.splitTextToSize('• ' + t, W - 2 * M); doc.text(lines, M, y); y += lines.length * 5.2; }
 
   // --- tabella giunti
-  doc.addPage(); y = 20; doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Giunti', M, y); y += 8;
-  doc.setFontSize(10); doc.text('N°', M, y); doc.text('Tipo', M + 14, y); doc.text('Parte A', M + 60, y); doc.text('Parte B', M + 120, y); doc.text('Conn.', M + 172, y);
+  doc.addPage(); y = 20; doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text(L.jt, M, y); y += 8;
+  doc.setFontSize(10); doc.text(L.no, M, y); doc.text(L.type, M + 14, y); doc.text(L.pa, M + 60, y); doc.text(L.pb, M + 120, y); doc.text(L.conn, M + 172, y);
   doc.setFont('helvetica', 'normal'); y += 2; doc.line(M, y, W - M, y); y += 5;
   const exported = new Set(parts.map(p => p.name));
   for (const j of log) {
@@ -106,27 +136,23 @@ export function guidePDF(title, parts, log, thumbs, opts) {
     doc.text(`${num.get(j.b) ? '#' + num.get(j.b) + ' ' : ''}${j.b}`.slice(0, 32), M + 120, y);
     doc.text(String(j.count || '-'), M + 172, y); y += 6;
   }
-  if (!log.length) { doc.text('Nessun giunto registrato.', M, y); y += 6; }
-  y += 4; doc.setFont('helvetica', 'bold'); doc.text('Istruzioni per tipo di giunto', M, y); doc.setFont('helvetica', 'normal'); y += 6;
-  const instr = [
-    ['Perni integrati', 'I perni sporgono da una parte: inseriscili nei fori della parte corrispondente. Un velo di colla CA o epossidica rende l\'unione permanente.'],
-    ['Tenoni sciolti', 'Stampa i tenoni (parti "Tenone G…"), incollali prima in un lato e poi accoppia l\'altra parte.'],
-    ['Sedi magneti', `Inserisci magneti Ø${opts.magD}×${opts.magT} mm in entrambe le sedi con un punto di colla, verificando la polarità prima di incollare il secondo lato.`],
-    ['Innesto rastremato', 'Il tappo a gradini di una parte entra nella sede dell\'altra e centra automaticamente le due metà.'],
-  ];
+  if (!log.length) { doc.text(L.none, M, y); y += 6; }
+  y += 4; doc.setFont('helvetica', 'bold'); doc.text(L.instrT, M, y); doc.setFont('helvetica', 'normal'); y += 6;
+  // [2026-09-28 v0.5.2] const instr = [...] (solo italiano, senza chiavetta e coda di rondine)
+  const instr = L.instr;
   for (const [a, b] of instr) { const l = doc.splitTextToSize(`${a}: ${b}`, W - 2 * M); if (y + l.length * 5 > H - 15) { doc.addPage(); y = 20; } doc.text(l, M, y); y += l.length * 5 + 2; }
 
   // --- schede parti (6 per pagina)
   const cw = (W - 2 * M - 8) / 2, chh = 78;
   parts.forEach((p, i) => {
-    if (i % 6 === 0) { doc.addPage(); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Parti', M, 18); }
+    if (i % 6 === 0) { doc.addPage(); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text(L.partsT, M, 18); }
     const col = i % 2, row = Math.floor((i % 6) / 2); const x = M + col * (cw + 8), yy = 24 + row * (chh + 6);
     doc.setDrawColor(200); doc.roundedRect(x, yy, cw, chh, 2, 2);
     const t = thumbs([p.id], 480, 320); doc.addImage(t.url, 'JPEG', x + 2, yy + 2, cw - 4, (cw - 4) * 2 / 3);
     const b = bboxOf(p.data); const s = b.getSize(new THREE.Vector3());
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(`#${i + 1}  ${p.name}`.slice(0, 44), x + 3, yy + chh - 10);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-    doc.text(`${s.x.toFixed(1)} × ${s.y.toFixed(1)} × ${s.z.toFixed(1)} mm   Giunti: ${p.joints.length ? p.joints.map(n => 'G' + n).join(', ') : '-'}`, x + 3, yy + chh - 4);
+    doc.text(`${s.x.toFixed(1)} × ${s.y.toFixed(1)} × ${s.z.toFixed(1)} mm   ${L.jl}: ${p.joints.length ? p.joints.map(n => 'G' + n).join(', ') : '-'}`, x + 3, yy + chh - 4);
   });
   return new Uint8Array(doc.output('arraybuffer'));
 }

@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — tools.js
-// Versione: 0.3.0-beta — 2026-09-28 10:24
+// Versione: 0.6.0-beta — 2026-10-01 11:03
 // -----------------------------------------------------------------------------
 // Strumenti di modellazione e gestione modello:
 //  primitive (cubo, sfera, cilindro, tubo, cono, anello) con bordi
@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { Manifold, CrossSection, manFromData, dataFromMan, bboxOf, transformData, weld, soup, meshStats } from './geo.js';
 import { state, makePart, withPart, commit, settings } from './state.js';
 import { childName } from './cuts.js';
+import { t } from './i18n.js';
 
 const replace = (olds, news, label, sel) => {
   const set = new Set(olds.map(p => p.id));
@@ -66,7 +67,8 @@ export function primitive(kind, dims, edge = 'sharp', er = 1) {
   if (sel.length) { const bb = new THREE.Box3(); sel.forEach(p => bb.union(bboxOf(p.data))); const c = bb.getCenter(new THREE.Vector3()); tx = c.x; ty = c.y; tz = bb.max.z - (b.max[2] - b.min[2]) / 2 - b.min[2]; }
   const moved = m.translate([tx, ty, tz]); m.delete();
   const names = { cube: 'Cubo', sphere: 'Sfera', cylinder: 'Cilindro', tube: 'Tubo', cone: 'Cono', ring: 'Anello' };
-  const p = makePart(dataFromMan(moved), names[kind], { kind: 'shape' }); moved.delete();
+  // [2026-09-28 v0.5.2] const p = makePart(dataFromMan(moved), names[kind], { kind: 'shape' }); moved.delete();
+  const p = makePart(dataFromMan(moved), t(names[kind]), { kind: 'shape' }); moved.delete();
   commit([...state.parts, p], 'Aggiungi ' + names[kind], { select: [p.id] });
 }
 

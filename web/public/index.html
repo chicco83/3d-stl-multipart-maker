@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- ==========================================================================
      3D STL Multipart Maker — index.html
-     Versione: 0.5.1-beta — 2026-09-28 11:42
+     Versione: 0.6.0-beta — 2026-10-01 11:03
      Struttura dell'interfaccia: barra superiore, barra strumenti a sinistra,
      vista 3D al centro (canvas + overlay SVG per i disegni), pannello
      opzioni/parti a destra, barra di stato in basso.
@@ -49,6 +49,8 @@
   <!-- [2026-09-28 v0.5.0] pulsante "?" che apriva lo strumento Guida rapida (scorciatoie) -->
   <!-- v0.5.1: il pulsante "?" apre il manuale completo (F1) -->
   <button data-act="manual" title="Manuale (F1)">? Manuale</button>
+  <!-- v0.6.0: selettore lingua (escluso dalla traduzione automatica) -->
+  <button id="langBtn" data-act="lang" data-noi18n>🌐 IT</button>
 </header>
 
 <nav id="tools"></nav>

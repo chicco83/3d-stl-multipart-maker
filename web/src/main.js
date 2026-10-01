@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.5.2-beta — 2026-09-28 11:47
+// Versione: 0.6.0-beta — 2026-10-01 11:03
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -19,6 +19,8 @@ import { stl, threeMF, stlZip, guidePDF, saveFile } from './exporter.js';
 import { $, toast, run, bind, num, range, chk, sel, seg, row, btn, ICONS } from './ui.js';
 // v0.5.1: manuale integrato (testo del README)
 import { openManual, manualOpen } from './manual.js';
+// v0.6.0: interfaccia bilingue IT/EN
+import { initI18n, setLang, getLang, onLang, t } from './i18n.js';
 
 // [2026-09-28 v0.1.0] const VERSION = '0.1.0-beta';
 // [2026-09-28 v0.2.0] const VERSION = '0.2.0-beta';
@@ -27,13 +29,17 @@ import { openManual, manualOpen } from './manual.js';
 // [2026-09-28 v0.4.1] const VERSION = '0.4.1-beta';
 // [2026-09-28 v0.5.0] const VERSION = '0.5.0-beta';
 // [2026-09-28 v0.5.1] const VERSION = '0.5.1-beta';
-const VERSION = '0.5.2-beta';
+// [2026-09-28 v0.5.2] const VERSION = '0.5.2-beta';
+const VERSION = '0.6.0-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================
 // AVVIO
 // =============================================================================
 async function boot() {
+  // v0.6.0: traduzione automatica dell'interfaccia (prima di creare i pannelli)
+  initI18n(); updateLangBtn();
+  onLang(() => { updateLangBtn(); renderPanel(); renderParts(); renderSteps(); $('#hint').textContent = tool.desc; });
   $('#ver').textContent = `v${VERSION}`; $('#ver').title = 'build ' + BUILD;
   initViewer($('#view'), $('#overlay'));
   V.onCarry = m => refreshColors(m);
@@ -145,7 +151,8 @@ function demoModel() {
     const fins = [0, 120, 240].map(a => T(fin.rotate([0, 0, a])));
     const all = Manifold.union([nozzle, body, nose, ring1, ring2, ...fins]);
     const d = dataFromMan(all); all.delete(); tmp.forEach(m => m.delete());
-    const p = makePart(d, 'Razzo demo');
+    // [2026-09-28 v0.5.2] const p = makePart(d, 'Razzo demo');
+    const p = makePart(d, t('Razzo demo'));
     commit([...state.parts, p], 'Demo', { select: [p.id] }); frameAll();
   });
 }
@@ -901,11 +908,13 @@ const act = {
   simplify: () => { const sp = selectedParts(); if (!sp.length) return toast('Seleziona una parte', 'warn'); run('Riduzione dettaglio', () => { const r = T.simplify(sp, settings.simplifyTol); toast(`Triangoli: ${r.before.toLocaleString('it-IT')} → ${r.after.toLocaleString('it-IT')}`, 'ok'); }); },
   separate: () => { const sp = selectedParts(); if (!sp.length) return toast('Seleziona una parte', 'warn'); run('Separazione', () => { const n = T.separate(sp); toast(n ? `Creati ${n} pezzi` : 'Nessun pezzo sciolto trovato', n ? 'ok' : ''); }); },
   merge: () => { const sp = selectedParts(); if (sp.length < 2) return toast('Seleziona almeno 2 parti', 'warn'); run('Unione', () => T.boolean('union', sp)); },
-  dup: () => { const sp = selectedParts(); if (!sp.length) return; const cp = sp.map(p => makePart(transformData(p.data, new THREE.Matrix4().makeTranslation(10, 10, 0)), p.name + ' copia', { joints: p.joints, kind: p.kind })); commit([...state.parts, ...cp], 'Duplica', { select: cp.map(p => p.id) }); },
+  dup: () => { const sp = selectedParts(); if (!sp.length) return; const cp = sp.map(p => makePart(transformData(p.data, new THREE.Matrix4().makeTranslation(10, 10, 0)), p.name + ' ' + t('copia'), { joints: p.joints, kind: p.kind })); commit([...state.parts, ...cp], 'Duplica', { select: cp.map(p => p.id) }); },
   showAll: () => commit(state.parts.map(p => p.hidden ? withPart(p, { hidden: false }) : p), 'Mostra tutte'),
   del: () => { const sp = selectedParts(); if (!sp.length) return; commit(state.parts.filter(p => !sp.includes(p)), 'Elimina'); },
   // esporta
   exZip: () => doExport('zip'), ex3mf: () => doExport('3mf'), exStl: () => doExport('stl'), exPdf: () => doExport('pdf'),
+  // v0.6.0: cambio lingua IT <-> EN al volo
+  lang: () => setLang(getLang() === 'it' ? 'en' : 'it'),
   // v0.5.1: manuale (eventuale capitolo in data-sec)
   manual: el => openManual(el && el.dataset ? el.dataset.sec : undefined),
   // v0.5.0: azioni della procedura guidata
@@ -1101,6 +1110,9 @@ function initSplitter() {
   // alla riduzione della finestra l'altezza viene riportata nei limiti
   window.addEventListener('resize', () => { const cur = parseFloat(panel.style.getPropertyValue('--parts-h')); if (cur > 0) apply(cur); });
 }
+
+// v0.6.0: etichetta del pulsante lingua (mostra la lingua attiva)
+function updateLangBtn() { const b = $('#langBtn'); if (b) { b.textContent = getLang() === 'it' ? '🌐 IT' : '🌐 EN'; b.title = getLang() === 'it' ? 'Lingua: Italiano — clic per English' : 'Language: English — click for Italiano'; } }
 
 // hk = tasto rapido dello strumento; key(ev) = gestore tastiera dello strumento
 boot().catch(e => { console.error(e); toast('Errore di avvio: ' + e.message, 'err', 20000); });

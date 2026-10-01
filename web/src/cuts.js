@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — cuts.js
-// Versione: 0.5.0-beta — 2026-09-28 11:35
+// Versione: 0.6.0-beta — 2026-10-01 11:03
 // -----------------------------------------------------------------------------
 // Operazioni di taglio ad alto livello sulle parti:
 //  - planeCut:       uno o più piani (piano, multi-piano, auto multi-piano, linea)
@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { Manifold, CrossSection, manFromData, dataFromMan, bboxOf } from './geo.js';
 import { jointedSplit } from './joints.js';
 import { state, makePart, commit, settings } from './state.js';
+import { t } from './i18n.js';
 
 // Nome progressivo delle parti generate: "<base> #n"
 let _seq = 1;
@@ -78,7 +79,8 @@ export function planeCut(targets, planes, opts, label = 'Taglio', samples = null
         if (r.used) {
           // [2026-09-28 v0.4.1] log.push({ no: jointNo, type: opts.face === 'chamfer' && opts.type === 'none' ? 'chamfer' : opts.type, a: nNeg, b: nPos, count: r.count || 0 });
           log.push({ no: jointNo, type: po.face === 'chamfer' && po.type === 'none' ? 'chamfer' : po.type, a: nNeg, b: nPos, count: r.count || 0 });
-          r.dowels.forEach((m, i) => dowels.push({ man: m, name: `Tenone G${jointNo}-${i + 1}`, no: jointNo }));
+          // [2026-09-28 v0.5.2] ... name: `Tenone G${jointNo}-${i + 1}` ...
+          r.dowels.forEach((m, i) => dowels.push({ man: m, name: `${t('Tenone')} G${jointNo}-${i + 1}`, no: jointNo }));
           jointNo++;
         } else r.dowels.forEach(m => m.delete());
         next.push(neg, pos); created.push(neg.id, pos.id);
