@@ -1,5 +1,15 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.6.0-beta — 2026-10-01 11:03**
+**Versione corrente: 0.6.1-beta — 2026-10-01 11:43**
+
+## [0.6.1-beta] — 2026-10-01 11:43
+### Aggiunto
+- **README in inglese** in coda a quello italiano (presentazione, funzioni, manuale completo in 12 capitoli, note per sviluppatori), con link di salto Italiano ⇄ English in cima a ciascuna parte.
+- **Manuale dentro l'app in inglese**: con l'interfaccia in inglese la finestra Manuale (F1) mostra il testo inglese; i pulsanti 📖 della guida aprono il capitolo corrispondente.
+
+### Modificato
+- Rimosso l'avviso "manuale solo in italiano".
+- Il manuale si ricostruisce automaticamente quando cambia la lingua.
+
 
 ## [0.6.0-beta] — 2026-10-01 11:03
 ### Aggiunto

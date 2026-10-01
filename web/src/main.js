@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.6.0-beta — 2026-10-01 11:03
+// Versione: 0.6.1-beta — 2026-10-01 11:43
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -30,7 +30,8 @@ import { initI18n, setLang, getLang, onLang, t } from './i18n.js';
 // [2026-09-28 v0.5.0] const VERSION = '0.5.0-beta';
 // [2026-09-28 v0.5.1] const VERSION = '0.5.1-beta';
 // [2026-09-28 v0.5.2] const VERSION = '0.5.2-beta';
-const VERSION = '0.6.0-beta';
+// [2026-10-01 v0.6.0] const VERSION = '0.6.0-beta';
+const VERSION = '0.6.1-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================

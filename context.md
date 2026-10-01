@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.6.0-beta — 2026-10-01 11:03**
+**Versione: 0.6.1-beta — 2026-10-01 11:43**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -39,7 +39,7 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 | `brush.js` | Pittura/maschera/scultura su adiacenza CSR con flood-fill entro il raggio |
 | `exporter.js` | STL binario, 3MF multi-oggetto, ZIP, guida PDF, salvataggio |
 | `main.js` (0.2.0) | anche lo splitter della sezione Parti |
-| `manual.js` (0.5.1) | Manuale integrato: README.md incorporato in build (`__MANUAL__`), reso con `marked`, indice, ricerca; mostrato fino al marcatore `fine-manuale` |
+| `manual.js` (0.5.1) | Manuale integrato: README.md incorporato in build (`__MANUAL__`), reso con `marked`, indice, ricerca. IT = dall'inizio al marcatore `fine-manuale`; EN (0.6.1) = tra `manual-en-start` e `manual-en-end` |
 | `i18n.js` (0.6.0) | Interfaccia IT/EN: dizionario IT→EN + modelli regex; MutationObserver traduce testi e attributi del DOM conservando l'originale (cambio lingua reversibile); `t()` per PDF e nomi parti; esclusi nomi parti e manuale |
 | `ui.js` | Toast, overlay attesa, campi e binding automatico `data-k` |
 | `main.js` | Strumenti, pannelli, eventi mouse/tastiera, import, export; dalla 0.5.0 **procedura guidata** (oggetto `G`, `tools.guide`, barra `#steps`) e scelta del giunto per taglio (`seamList`, chiavi piano `X1/Y1/Z1`, `withSeamTypes`) |

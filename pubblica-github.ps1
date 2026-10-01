@@ -1,6 +1,6 @@
 ﻿# =============================================================================
 # 3D STL Multipart Maker — pubblica-github.ps1
-# Versione: 0.6.0-beta — 2026-10-01 11:03
+# Versione: 0.6.1-beta — 2026-10-01 11:43
 # -----------------------------------------------------------------------------
 # Pubblica il progetto su GitHub in un solo passaggio (da eseguire su Windows):
 #  1. installa Git e GitHub CLI se mancano (winget);
@@ -17,7 +17,8 @@
 # [2026-09-28 v0.5.0] param([string]$Version = "0.5.0-beta", [string]$Repo = "3d-stl-multipart-maker")
 # [2026-09-28 v0.5.1] param([string]$Version = "0.5.1-beta", [string]$Repo = "3d-stl-multipart-maker")
 # [2026-09-28 v0.5.2] param([string]$Version = "0.5.2-beta", [string]$Repo = "3d-stl-multipart-maker")
-param([string]$Version = "0.6.0-beta", [string]$Repo = "3d-stl-multipart-maker")
+# [2026-10-01 v0.6.0] param([string]$Version = "0.6.0-beta", [string]$Repo = "3d-stl-multipart-maker")
+param([string]$Version = "0.6.1-beta", [string]$Repo = "3d-stl-multipart-maker")
 # i comandi esterni (git, gh) segnalano gli errori con $LASTEXITCODE: controllo manuale
 $ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot

@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — manual.js
-// Versione: 0.6.0-beta — 2026-10-01 11:03
+// Versione: 0.6.1-beta — 2026-10-01 11:43
 // -----------------------------------------------------------------------------
 // Manuale integrato. Il testo è il README.md del repository, incorporato nel
 // bundle in fase di build (costante __MANUAL__, vedi build.mjs): una sola
@@ -21,21 +21,37 @@ const SRC = typeof __MANUAL__ !== 'undefined' ? __MANUAL__ : '# Manuale\nNon dis
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 let root = null;
+let builtLang = null;   // v0.6.1: lingua con cui è stata costruita la finestra
+let keyBound = false;   // v0.6.1: il gestore Esc va registrato una sola volta
 
 // -----------------------------------------------------------------------------
 // Costruisce la finestra la prima volta
 // -----------------------------------------------------------------------------
-function build() {
-  // solo la parte utente del README
+// v0.6.1: il README contiene il manuale in italiano (dall'inizio al marcatore
+// "fine-manuale") e in inglese (tra "manual-en-start" e "manual-en-end").
+function sourceFor(lang) {
+  if (lang === 'en') {
+    const a = SRC.indexOf('<!-- manual-en-start'), b = SRC.indexOf('<!-- manual-en-end');
+    if (a > 0 && b > a) return '# 3D STL Multipart Maker\n\n' + SRC.slice(SRC.indexOf('-->', a) + 3, b);
+  }
   const cut = SRC.indexOf('<!-- fine-manuale');
-  const md = (cut > 0 ? SRC.slice(0, cut) : SRC).replace(/^---\s*$/gm, '');
+  return cut > 0 ? SRC.slice(0, cut) : SRC;
+}
+function build() {
+  // [2026-10-01 v0.6.0] solo la parte italiana del README:
+  // const cut = SRC.indexOf('<!-- fine-manuale');
+  // const md = (cut > 0 ? SRC.slice(0, cut) : SRC).replace(/^---\s*$/gm, '');
+  // v0.6.1: testo nella lingua dell'interfaccia; tolta la riga dei link lingua (🇮🇹 / 🇬🇧)
+  if (root) root.remove();
+  builtLang = getLang();
+  const md = sourceFor(builtLang).replace(/^---\s*$/gm, '').replace(/^🇮🇹.*$/gm, '');
   const html = marked.parse(md, { gfm: true, breaks: false });
 
   root = document.createElement('div'); root.id = 'manual'; root.className = 'hidden';
   root.innerHTML = `<div class="mbox" role="dialog" aria-label="Manuale">
     <header><b>📖 Manuale</b><input type="search" placeholder="Cerca nel manuale…" aria-label="Cerca"><span class="grow"></span>
       <a class="gh" href="${REPO}#readme" target="_blank" rel="noopener">Apri su GitHub</a><button class="close" title="Chiudi (Esc)">✕</button></header>
-    <div class="langnote hidden" data-noi18n>The full manual is currently available in Italian only. Menus, guide and messages are in English; use your browser's translator for this page if needed.</div>
+    <!-- [2026-10-01 v0.6.0] avviso "manuale solo in italiano": rimosso, ora c'è il manuale inglese -->
     <div class="mbody"><nav></nav><article>${html}</article></div></div>`;
   document.body.appendChild(root);
   const art = root.querySelector('article'), nav = root.querySelector('nav');
@@ -85,17 +101,20 @@ function build() {
 
   root.querySelector('.close').addEventListener('click', closeManual);
   root.addEventListener('click', e => { if (e.target === root) closeManual(); });
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !root.classList.contains('hidden')) { e.stopPropagation(); closeManual(); } }, true);
+  // [2026-10-01 v0.6.0] registrazione ad ogni costruzione -> ora una sola volta
+  if (!keyBound) { keyBound = true; window.addEventListener('keydown', e => { if (e.key === 'Escape' && root && !root.classList.contains('hidden')) { e.stopPropagation(); closeManual(); } }, true); }
 }
 
 // -----------------------------------------------------------------------------
 // API: apre il manuale (facoltativamente a un capitolo, cercato per testo)
 // -----------------------------------------------------------------------------
+// v0.6.1: nomi dei capitoli in inglese per i collegamenti dalla procedura guidata
+const SEC_EN = { 'Aprire un modello': 'Opening a model', 'Stampante': 'Printer', 'Modellazione': 'Modelling', 'Strumenti di taglio': 'Cutting tools', 'Faccia di taglio': 'Cut face', 'Procedura guidata': 'Guided workflow', 'Esporta': 'Export' };
 export function openManual(section) {
-  if (!root) build();
+  // [2026-10-01 v0.6.0] if (!root) build(); ... avviso lingua
+  if (!root || builtLang !== getLang()) build();   // ricostruita se è cambiata la lingua
   root.classList.remove('hidden');
-  // v0.6.0: in inglese mostra un avviso sulla lingua del manuale
-  const note = root.querySelector('.langnote'); if (note) note.classList.toggle('hidden', getLang() !== 'en');
+  if (section && builtLang === 'en') section = SEC_EN[section] || section;
   if (section) {
     const h = [...root.querySelectorAll('article h1, article h2')].find(x => x.textContent.toLowerCase().includes(section.toLowerCase()));
     if (h) setTimeout(() => h.scrollIntoView({ block: 'start' }), 0);
