@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.6.1-beta — 2026-10-01 11:43
+// Versione: 0.6.2-beta — 2026-10-07 00:52
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -31,7 +31,8 @@ import { initI18n, setLang, getLang, onLang, t } from './i18n.js';
 // [2026-09-28 v0.5.1] const VERSION = '0.5.1-beta';
 // [2026-09-28 v0.5.2] const VERSION = '0.5.2-beta';
 // [2026-10-01 v0.6.0] const VERSION = '0.6.0-beta';
-const VERSION = '0.6.1-beta';
+// [2026-10-07 v0.6.2] const VERSION = '0.6.1-beta';
+const VERSION = '0.6.2-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================
@@ -705,6 +706,7 @@ tools.export = {
       ${btn('ex3mf', '3MF unico (tutte le parti)')}
       ${btn('exStl', n === 1 ? 'STL singolo' : 'STL separati (ZIP)')}
       ${btn('exPdf', 'Solo guida di montaggio PDF')}
+      ${btn('exStep', 'Converti in STEP (Mesh2STEP)')}
     </div><p class="small">I file vengono salvati con la finestra "Salva con nome" di Windows.</p>`;
   },
   onSel() { renderPanel(); },
@@ -913,7 +915,7 @@ const act = {
   showAll: () => commit(state.parts.map(p => p.hidden ? withPart(p, { hidden: false }) : p), 'Mostra tutte'),
   del: () => { const sp = selectedParts(); if (!sp.length) return; commit(state.parts.filter(p => !sp.includes(p)), 'Elimina'); },
   // esporta
-  exZip: () => doExport('zip'), ex3mf: () => doExport('3mf'), exStl: () => doExport('stl'), exPdf: () => doExport('pdf'),
+  exZip: () => doExport('zip'), ex3mf: () => doExport('3mf'), exStl: () => doExport('stl'), exPdf: () => doExport('pdf'), exStep: () => toStep(),
   // v0.6.0: cambio lingua IT <-> EN al volo
   lang: () => setLang(getLang() === 'it' ? 'en' : 'it'),
   // v0.5.1: manuale (eventuale capitolo in data-sec)
@@ -958,6 +960,32 @@ function paintCut(opts, label) {
     const r = planeCut([part], [pp], opts, label, pp.samples); paintMesh = null; planeObj.visible = false;
     toast(r.created ? 'Regione staccata' : 'Il piano calcolato non attraversa la parte', r.created ? 'ok' : 'warn');
   });
+}
+
+// [2026-10-07 v0.6.2] Converti in STEP: apre Mesh2STEP (https://chicco83.github.io/mesh2step/) in una nuova
+// finestra e gli passa le parti via postMessage ({type:'mesh2step:open', name, buffer}) appena risponde
+// con 'mesh2step:ready'. Una parte -> STL; più parti -> 3MF unico (ogni parte diventa un corpo).
+// Il file va in un'altra pagina web: l'elaborazione resta comunque nel browser, nessun upload.
+const MESH2STEP_URL = 'https://chicco83.github.io/mesh2step/';
+async function toStep() {
+  let parts = targetParts(); if (!parts.length) return toast('Niente da esportare', 'warn');
+  const title = (parts[0].name || 'modello').replace(/ #\d+$/, '');
+  if (tp.arr) parts = parts.map(p => ({ ...p, data: transformData(p.data, T.dropMatrix(p)) }));
+  const one = parts.length === 1;
+  const name = one ? `${title}.stl` : `${title}.3mf`;
+  const bytes = one ? stl(parts[0].data, parts[0].name) : threeMF(parts);
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const w = window.open(MESH2STEP_URL, '_blank');
+  if (!w) return toast('Il browser ha bloccato la nuova finestra: consenti i popup e riprova', 'warn');
+  let done = false;
+  const onMsg = e => {
+    if (e.source !== w || !e.data || e.data.type !== 'mesh2step:ready') return;
+    done = true; removeEventListener('message', onMsg);
+    w.postMessage({ type: 'mesh2step:open', name, buffer }, '*');
+    toast(`Inviato a Mesh2STEP: ${name}`, 'ok');
+  };
+  addEventListener('message', onMsg);
+  setTimeout(() => { if (!done) { removeEventListener('message', onMsg); toast('Mesh2STEP non ha risposto: controlla la connessione, oppure esporta in STL e aprilo a mano', 'warn'); } }, 20000);
 }
 
 // Esportazione

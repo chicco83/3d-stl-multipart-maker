@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — claude.md
-**Versione: 0.6.1-beta — 2026-10-01 11:43**
+**Versione: 0.6.2-beta — 2026-10-07 00:52**
 
 Istruzioni per chi (persona o AI) lavora su questo progetto.
 

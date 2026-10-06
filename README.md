@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker
-**Versione: 0.6.1-beta — 2026-10-01 11:43**
+**Versione: 0.6.2-beta — 2026-10-07 00:52**
 
 🇮🇹 **Italiano** · 🇬🇧 [English](#3d-stl-multipart-maker-english)
 
@@ -107,6 +107,7 @@ Tutti i tagli piani usano le opzioni **Faccia di taglio** e **Giunti** (vedi cap
 ## 9. Esporta (X)
 - *Pacchetto ZIP*: STL numerati + 3MF + **guida di montaggio PDF**.
 - *3MF unico*, *STL singolo / separati*, *Solo guida PDF*.
+- *Converti in STEP (Mesh2STEP)*: apre [Mesh2STEP](https://chicco83.github.io/mesh2step/) in una nuova finestra e le passa le parti (una parte = STL, più parti = 3MF a più corpi); serve la connessione e il permesso ai popup.
 - *Disponi ogni parte sul piano* appoggia ogni pezzo a z=0 nei file (la scena non cambia).
 - La guida contiene: panoramica numerata, tabella giunti (G1, G2…) con le parti da unire, istruzioni per tipo di giunto, scheda di ogni parte con miniatura e misure.
 - Nella versione Windows il salvataggio usa la finestra "Salva con nome", che ricorda l'ultima cartella.
@@ -256,6 +257,7 @@ All planar cuts use the **Cut face** and **Joints** options (see chapter 6).
 ## 9. Export (X)
 - *ZIP package*: numbered STLs + 3MF + **PDF assembly guide**.
 - *Single 3MF*, *Single STL / separate STLs*, *Assembly guide PDF only*.
+- *Convert to STEP (Mesh2STEP)*: opens [Mesh2STEP](https://chicco83.github.io/mesh2step/) in a new window and sends it the parts (one part = STL, several = multi-body 3MF); needs a connection and popups allowed.
 - *Place every part on the bed* puts each piece at z=0 in the files (the scene does not change).
 - The guide contains: numbered overview, joint table (G1, G2…) with the parts to join, instructions per joint type, a card for each part with thumbnail and size. It is written in the interface language.
 - In the Windows version saving uses the "Save as" dialog, which remembers the last folder.

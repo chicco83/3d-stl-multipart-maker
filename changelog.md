@@ -1,5 +1,9 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.6.1-beta — 2026-10-01 11:43**
+**Versione corrente: 0.6.2-beta — 2026-10-07 00:52**
+
+## [0.6.2-beta] — 2026-10-07 00:52
+### Aggiunto
+- **Converti in STEP (Mesh2STEP)** nel pannello Esporta: apre Mesh2STEP in una nuova finestra e gli invia le parti via `postMessage` (`mesh2step:ready` → `mesh2step:open`). Una parte → STL, più parti → 3MF a più corpi; rispetta «Disponi ogni parte sul piano». Non provato sulla versione Windows (la nuova finestra dipende da WebView2).
 
 ## [0.6.1-beta] — 2026-10-01 11:43
 ### Aggiunto

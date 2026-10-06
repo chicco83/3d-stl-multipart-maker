@@ -107,7 +107,9 @@ const DICT = {
   // esporta
   'Parti da esportare:': 'Parts to export:', '(selezionate)': '(selected)', '(tutte le visibili)': '(all visible)', 'Disponi ogni parte sul piano (z=0) nel file': 'Place every part on the bed (z=0) in the file',
   'Pacchetto ZIP: STL + 3MF + guida PDF': 'ZIP package: STL + 3MF + PDF guide', '3MF unico (tutte le parti)': 'Single 3MF (all parts)', 'STL singolo': 'Single STL', 'STL separati (ZIP)': 'Separate STLs (ZIP)',
-  'Solo guida di montaggio PDF': 'Assembly guide PDF only', 'I file vengono salvati con la finestra "Salva con nome" di Windows.': 'Files are saved with the Windows "Save as" dialog.',
+  'Solo guida di montaggio PDF': 'Assembly guide PDF only', 'Converti in STEP (Mesh2STEP)': 'Convert to STEP (Mesh2STEP)',
+  'Il browser ha bloccato la nuova finestra: consenti i popup e riprova': 'The browser blocked the new window: allow popups and try again',
+  'Mesh2STEP non ha risposto: controlla la connessione, oppure esporta in STL e aprilo a mano': 'Mesh2STEP did not answer: check your connection, or export an STL and open it by hand', 'I file vengono salvati con la finestra "Salva con nome" di Windows.': 'Files are saved with the Windows "Save as" dialog.',
   // impostazioni / aiuto
   'Bambu/Prusa 250': 'Bambu/Prusa 250', 'Ender 220': 'Ender 220', 'Bambu X1/P1 256': 'Bambu X1/P1 256', '📖 Apri il manuale completo (F1)': '📖 Open the full manual (F1)',
   // procedura guidata
@@ -171,6 +173,7 @@ const PATTERNS = [
   [/^Creati (\d+) pezzi$/, (m, a) => `Created ${a} pieces`],
   [/^Create (\d+) parti(?: \+ (\d+) tenoni)?$/, (m, a, b) => `Created ${a} parts${b ? ` + ${b} dowels` : ''}`],
   [/^Salvato: (.+)$/, (m, a) => `Saved: ${a}`],
+  [/^Inviato a Mesh2STEP: (.+)$/, (m, a) => `Sent to Mesh2STEP: ${a}`],
   [/^Triangoli: (.+) → (.+)$/, (m, a, b) => `Triangles: ${a} → ${b}`],
   [/^Formato non supportato: (.+)$/, (m, a) => `Unsupported format: ${a}`],
   [/^(.+): nessun triangolo trovato$/, (m, a) => `${a}: no triangles found`],

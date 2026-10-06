@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.6.1-beta — 2026-10-01 11:43**
+**Versione: 0.6.2-beta — 2026-10-07 00:52**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
