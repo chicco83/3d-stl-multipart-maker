@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — state.js
-// Versione: 0.5.0-beta — 2026-09-28 11:35
+// Versione: 0.7.0-beta — 2026-10-08 12:00
 // -----------------------------------------------------------------------------
 // Stato applicativo: elenco parti (immutabili), selezione, registro giunti,
 // cronologia undo/redo (snapshot di array di riferimenti -> costo minimo),
@@ -89,9 +89,15 @@ const DEFAULTS = {
   bed: [220, 220, 250], bedMargin: 5,
   // [2026-09-28 v0.4.1] joint: { type: 'pin', shape: 'round', count: 0, radius: 2.5, length: 8, tol: 0.2, swap: false, magD: 6, magT: 3, magClr: 0.15, depth: 0, number: true, numDepth: 0.6, face: 'flat', chamfer: 6 },
   // v0.5.0: + chiavetta/coda di rondine (keyW larghezza, keyH altezza, keyLen % lunghezza sezione, dvAngle svasatura)
-  joint: { type: 'pin', shape: 'round', count: 0, radius: 2.5, length: 8, tol: 0.2, swap: false, magD: 6, magT: 3, magClr: 0.15, depth: 0, number: true, numDepth: 0.6, face: 'flat', chamfer: 6, keyW: 6, keyH: 5, keyLen: 70, dvAngle: 15 },
+  // [2026-10-08 v0.7.0] joint: { ... tol: 0.2, ... dvAngle: 15 },
+  // v0.7.0: tol = gioco laterale (radiale) di tutti i giunti; tolDepth = gioco in profondità (fori più profondi
+  // dei perni, tenoni più corti); tilt/tiltDir = inclinazione dei perni e dei tenoni (gradi, direzione in gradi nel piano)
+  joint: { type: 'pin', shape: 'round', count: 0, radius: 2.5, length: 8, tol: 0.2, tolDepth: 0.3, swap: false, magD: 6, magT: 3, magClr: 0.15, depth: 0, number: true, numDepth: 0.6, face: 'flat', chamfer: 6, keyW: 6, keyH: 5, keyLen: 70, dvAngle: 15, tilt: 0, tiltDir: 0 },
+  // v0.7.0: stile della faccia di taglio per Corda/Banda (seam | step | flat | chamfer) e opzioni della Banda
+  lassoFace: 'seam', bandSmooth: 0, bandRepair: true,
   simplifyTol: 0.02,
 };
+export const DEFAULT_JOINT = DEFAULTS.joint;
 export const settings = (() => {
   try { const s = JSON.parse(localStorage.getItem('mse.settings') || '{}'); return { ...DEFAULTS, ...s, joint: { ...DEFAULTS.joint, ...(s.joint || {}) } }; }
   catch (e) { return structuredClone(DEFAULTS); }

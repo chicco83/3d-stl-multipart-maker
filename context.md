@@ -1,5 +1,5 @@
 # 3D STL Multipart Maker — context.md
-**Versione: 0.6.2-beta — 2026-10-07 00:52**
+**Versione: 0.7.0-beta — 2026-10-08 12:00**
 
 ## Obiettivo
 **3D STL Multipart Maker** (fino alla 0.2.0 "Model Splitter Evo") — programma Windows **portable** (un solo `.exe`, nessuna installazione) con le funzioni offerte da
@@ -33,11 +33,11 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 | `geo.js` | Init WASM, conversioni Manifold ↔ dati ↔ BufferGeometry, saldatura vertici (hash a indirizzamento aperto), parser STL/3MF/OBJ, utilità |
 | `state.js` | Parti **immutabili** `{id,name,color,data:{vp,tv},joints,kind,hidden}`, selezione ordinata, registro giunti, undo/redo a snapshot (40 livelli), impostazioni in localStorage |
 | `viewer.js` | Scena Z-up, pipeline EffectComposer con OutlinePass per il contorno di selezione (0.5.2), piano e volume di stampa, sincronizzazione mesh, vista esplosa, raycast, miniature per il PDF |
-| `joints.js` | Taglio planare con giunti: sistema locale del piano, sezione d'interfaccia, innesto rastremato a gradini, perni/tenoni/magneti con campionamento "farthest point", **chiavetta e coda di rondine** (0.5.0) lungo l'asse principale (PCA) di ogni isola della sezione, numeri a 7 segmenti incisi |
-| `cuts.js` | Piano, multi-piano, auto multi-piano (per parte), lazo prospettico (Corda/Banda), piano dal pennello (PCA del bordo), piano da linea |
+| `joints.js` (0.7.0: gioco laterale `tol` + in profondità `tolDepth`, perni/tenoni inclinati `tilt`/`tiltDir`) | Taglio planare con giunti: sistema locale del piano, sezione d'interfaccia, innesto rastremato a gradini, perni/tenoni/magneti con campionamento "farthest point", **chiavetta e coda di rondine** (0.5.0) lungo l'asse principale (PCA) di ogni isola della sezione, numeri a 7 segmenti incisi |
+| `cuts.js` | Piano, multi-piano, auto multi-piano (per parte), lazo (Corda/Banda) con stile `seam` (prospettico) o `step` (pareti dritte), `repairLoops` (NonZero), `smoothBand` (Chaikin con punti fissati), `planeFromEdge` (piano PCA dai punti del contorno), piano dal pennello (PCA del bordo), piano da linea |
 | `tools.js` | Primitive con bordi, booleane con gioco (Minkowski), inlay, riduzione dettaglio, ispezione, riparazione rapida/volumetrica, separazione, orientamento migliore, disponi |
 | `brush.js` | Pittura/maschera/scultura su adiacenza CSR con flood-fill entro il raggio |
-| `exporter.js` | STL binario, 3MF multi-oggetto, ZIP, guida PDF, salvataggio |
+| `exporter.js` | STL binario, 3MF multi-oggetto, ZIP, guida PDF, salvataggio; dalla 0.7.0 file di progetto `.stlmp` (`projectBytes`/`readProject`: ZIP con `project.json` + `p<i>.vp`/`p<i>.tv`) |
 | `main.js` (0.2.0) | anche lo splitter della sezione Parti |
 | `manual.js` (0.5.1) | Manuale integrato: README.md incorporato in build (`__MANUAL__`), reso con `marked`, indice, ricerca. IT = dall'inizio al marcatore `fine-manuale`; EN (0.6.1) = tra `manual-en-start` e `manual-en-end` |
 | `i18n.js` (0.6.0) | Interfaccia IT/EN: dizionario IT→EN + modelli regex; MutationObserver traduce testi e attributi del DOM conservando l'originale (cambio lingua reversibile); `t()` per PDF e nomi parti; esclusi nomi parti e manuale |
@@ -57,8 +57,16 @@ stampabili, con giunti di allineamento, e fornire strumenti di modellazione e ri
 - Ogni operazione produce nuove parti → una voce di undo.
 - Commenti in italiano; testi dell'interfaccia scritti in italiano nel codice e tradotti in inglese da `i18n.js` (aggiungere ogni nuovo testo al dizionario `DICT`). Versione in testa a ogni file e nel nome dell'exe.
 
+## Scelte della 0.7.0 (confronto con modelsplitter.com, preso come riferimento funzionale)
+- **Gioco**: due parametri, `tol` (laterale: fori/sedi/fessure più larghi, anche innesto e chiavetta) e `tolDepth` (fori più profondi, tenoni più corti), con preset Stretto/Normale/Largo/Molto largo. Si allarga sempre il foro, mai si assottiglia il perno (le stampanti restringono i fori). I magneti mantengono `magClr`.
+- **Stili faccia Corda/Banda**: `seam` = comportamento storico (tronco di piramide dalla camera); `step` = prisma dritto alla profondità media delle parti (nostra interpretazione di "gradino disegnato": il sito non lo spiega); `flat`/`chamfer` = raggi dal contorno → punti sulla superficie → piano PCA + modalità "campioni" del pennello, quindi con giunti.
+- **Banda**: punti fissati (flag `pin`, click senza trascinare; tasto destro rilascia), Alt = aggancio alla superficie visibile (raycast, altrimenti vertice proiettato più vicino entro 60 px), smussatura 0–100% = 0–4 passate di Chaikin che non muovono i punti fissati, riparazione dei bordi con `CrossSection(..., 'NonZero')`.
+- **Progetto `.stlmp`**: salva parti, registro giunti, volume e impostazioni giunti; l'apertura sostituisce le parti ed è annullabile.
+- **Perni inclinati**: rotazione attorno all'asse perpendicolare alla direzione scelta, massimo 35°; l'inclinazione aumenta la distanza minima dal bordo (`len·tan(tilt)`).
+- Non fatto per scelta: "distanza dal bordo" separata dal margine (esiste già *Margine* del volume di stampa).
+
 ## Limiti noti della beta
-- Giunti automatici solo sui tagli **piani** (piano, multi, auto, linea, pennello). Corda/Banda tagliano "a stampo" lungo la vista senza giunti.
+- Giunti automatici sui tagli **piani** (piano, multi, auto, linea, pennello) e, dalla 0.7.0, su Corda/Banda con faccia *Piana*/*Rastremata*; con *Segue la cucitura*/*Gradino disegnato* il taglio è "a stampo" lungo la vista senza giunti.
 - Il pennello di taglio usa un piano adattato al bordo dell'area dipinta (regolabile col gizmo), non una superficie libera.
 - Le operazioni pesanti girano nel thread principale (la finestra resta in attesa durante il calcolo).
 - Il gioco nelle booleane usa la somma di Minkowski: lenta su mesh molto grandi.

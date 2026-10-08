@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- ==========================================================================
      3D STL Multipart Maker — index.html
-     Versione: 0.6.0-beta — 2026-10-01 11:03
+     Versione: 0.7.0-beta — 2026-10-08 12:00
      Struttura dell'interfaccia: barra superiore, barra strumenti a sinistra,
      vista 3D al centro (canvas + overlay SVG per i disegni), pannello
      opzioni/parti a destra, barra di stato in basso.
@@ -33,7 +33,8 @@
 <header id="top">
   <!-- [2026-09-28 v0.2.0] intestazione precedente: logo + nome "Model Splitter" (grassetto) + "Evo" (colorato) -->
   <div class="brand"><img src="icon.png" alt=""><b>3D STL</b><span>Multipart Maker</span><em id="ver"></em></div>
-  <button data-act="open" title="Apri STL / 3MF / OBJ (Ctrl+O)">Apri</button>
+  <button data-act="open" title="Apri STL / 3MF / OBJ / progetto (Ctrl+O)">Apri</button>
+  <button data-act="saveProject" title="Salva il progetto (Ctrl+S)">Salva</button>
   <button data-act="undo" title="Annulla (Ctrl+Z)">&#8630; Annulla</button>
   <button data-act="redo" title="Ripeti (Ctrl+Shift+Z)">&#8631; Ripeti</button>
   <span class="sep"></span>
@@ -59,7 +60,7 @@
   <!-- v0.5.0: barra dei passi della procedura guidata -->
   <div id="steps"></div>
   <svg id="overlay"></svg>
-  <div id="drop" class="hidden">Rilascia qui i file STL / 3MF / OBJ</div>
+  <div id="drop" class="hidden">Rilascia qui i file STL / 3MF / OBJ / progetto</div>
   <div id="empty"><div><h2>Trascina un modello qui</h2><p>STL, 3MF oppure OBJ — oppure premi <b>Apri</b>.</p><p class="small">Tasto destro: orbita · Centrale: sposta · Rotella: zoom</p><button data-act="demo">Carica modello di prova</button></div></div>
   <div id="brushCursor" class="hidden"></div>
 </main>
@@ -80,7 +81,7 @@
 
 <div id="busy" class="hidden"><div class="spin"></div><div id="busytxt">Elaborazione…</div></div>
 <div id="toasts"></div>
-<input type="file" id="file" multiple accept=".stl,.3mf,.obj" hidden>
+<input type="file" id="file" multiple accept=".stl,.3mf,.obj,.stlmp" hidden>
 <script type="module" src="app.js"></script>
 </body>
 </html>

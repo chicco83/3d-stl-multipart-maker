@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — main.js
-// Versione: 0.6.2-beta — 2026-10-07 00:52
+// Versione: 0.7.0-beta — 2026-10-08 12:00
 // -----------------------------------------------------------------------------
 // Punto d'ingresso dell'interfaccia: import file, elenco parti, strumenti,
 // gestione mouse/tastiera. Ogni strumento è un oggetto con:
@@ -10,12 +10,12 @@
 
 import * as THREE from 'three';
 import { initGeo, Manifold, CrossSection, parseSTL, parse3MF, parseOBJ, weld, manFromData, dataFromMan, bboxOf, transformData } from './geo.js';
-import { state, onChange, commit, undo, redo, select, selectedParts, targetParts, makePart, withPart, settings, saveSettings, notify } from './state.js';
+import { state, onChange, commit, undo, redo, select, selectedParts, targetParts, makePart, withPart, settings, saveSettings, notify, DEFAULT_JOINT } from './state.js';
 import { V, initViewer, redraw, leftOrbit, drawBed, setExplode, frameAll, viewFrom, pick, toScreen, ndc, renderThumb, fitsBed } from './viewer.js';
-import { planeCut, autoPlanesEach, evenPlanes, withSeamTypes, lassoCut, paintPlane, planeFromLine } from './cuts.js';
+import { planeCut, autoPlanesEach, evenPlanes, withSeamTypes, lassoCut, paintPlane, planeFromLine, planeFromEdge, repairLoops, smoothBand } from './cuts.js';
 import * as T from './tools.js';
 import { paintStamp, sculptStamp, endSculpt, clearLayer, refreshColors, brushData } from './brush.js';
-import { stl, threeMF, stlZip, guidePDF, saveFile } from './exporter.js';
+import { stl, threeMF, stlZip, guidePDF, saveFile, projectBytes, readProject } from './exporter.js';
 import { $, toast, run, bind, num, range, chk, sel, seg, row, btn, ICONS } from './ui.js';
 // v0.5.1: manuale integrato (testo del README)
 import { openManual, manualOpen } from './manual.js';
@@ -32,7 +32,8 @@ import { initI18n, setLang, getLang, onLang, t } from './i18n.js';
 // [2026-09-28 v0.5.2] const VERSION = '0.5.2-beta';
 // [2026-10-01 v0.6.0] const VERSION = '0.6.0-beta';
 // [2026-10-07 v0.6.2] const VERSION = '0.6.1-beta';
-const VERSION = '0.6.2-beta';
+// [2026-10-08 v0.7.0] const VERSION = '0.6.2-beta';
+const VERSION = '0.7.0-beta';
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
 
 // =============================================================================
@@ -92,6 +93,7 @@ async function importFiles(files) {
     for (const f of files) {
       const ext = f.name.toLowerCase().split('.').pop(); const buf = await f.arrayBuffer();
       const base = f.name.replace(/\.[^.]+$/, '');
+      if (ext === 'stlmp') { loadProject(buf); continue; }   // v0.7.0: file di progetto
       let items = [];
       if (ext === 'stl') items = [{ name: base, pos: parseSTL(buf) }];
       else if (ext === 'obj') items = [{ name: base, pos: parseOBJ(buf) }];
@@ -116,6 +118,26 @@ async function importFiles(files) {
       }
     }
     if (added.length) { commit([...state.parts, ...added], 'Importa', { select: added.map(p => p.id) }); frameAll(); toast(`Importate ${added.length} parti`, 'ok'); }
+  });
+}
+
+// v0.7.0 — PROGETTO: salva/apre tutto il lavoro (parti, giunti, impostazioni) in un file .stlmp
+let projectName = 'progetto';
+function loadProject(buf) {
+  const pr = readProject(buf);
+  if (state.parts.length && !confirm(t('Aprire il progetto sostituisce le parti attuali (si può annullare con Ctrl+Z). Continuare?'))) return;
+  const parts = pr.parts.map(m => makePart(m.data, m.name, { color: m.color, joints: m.joints || [], kind: m.kind, hidden: m.hidden }));
+  if (pr.settings) { if (pr.settings.bed) settings.bed = pr.settings.bed; if (pr.settings.joint) Object.assign(settings.joint, pr.settings.joint); saveSettings(); drawBed(); }
+  commit(parts, 'Apri progetto', { select: [], jointNo: pr.jointNo || 1, jointLog: pr.jointLog || [] });
+  frameAll(); toast(`Progetto aperto: ${parts.length} parti`, 'ok');
+}
+async function saveProject() {
+  if (!state.parts.length) return toast('Niente da salvare', 'warn');
+  await run('Salvataggio progetto', async () => {
+    const title = (state.parts[0].name || projectName).replace(/ #\d+$/, '');
+    const bytes = projectBytes(state.parts, { savedWith: VERSION, jointNo: state.jointNo, jointLog: state.jointLog, settings: { bed: settings.bed, joint: settings.joint } });
+    const saved = await saveFile(`${title}.stlmp`, bytes, 'application/octet-stream', 'Progetto 3D STL Multipart Maker');
+    if (saved) toast(`Progetto salvato: ${saved}`, 'ok');
   });
 }
 
@@ -256,13 +278,17 @@ function showPreviewPlanes(planes) {
 // v0.5.0: aggiunti Chiavetta e Coda di rondine; i campi mostrati dipendono da
 // tutti i tipi in uso (tipo generale + tipi scelti per i singoli tagli: extra)
 const JOINT_TYPES = [['none', 'Nessuno'], ['pin', 'Perni'], ['tenon', 'Tenoni'], ['magnet', 'Magneti'], ['key', 'Chiavetta'], ['dovetail', 'Coda di rondine']];
-function jointForm(extra = []) {
+// v0.7.0: lassoMode = form per Corda/Banda con faccia piana/rastremata (la faccia è scelta dallo stile del lazo)
+function jointForm(extra = [], lassoMode = false) {
   const j = settings.joint; let h = '';
   const used = new Set([j.type, ...extra].filter(t => t && t !== 'default' && t !== 'none'));
   const many = used.size > 1; const sub = t => many ? `<p class="small" style="margin:8px 0 2px"><b>${t}</b></p>` : '';
-  h += `<fieldset><legend>Faccia di taglio</legend><div class="row">${seg('joint.face', [['flat', 'Piana'], ['chamfer', 'Innesto rastremato']])}</div>`;
-  if (j.face === 'chamfer') h += row('Altezza innesto', num('joint.chamfer', 1, 40, 0.5) + ' mm');
-  h += `</fieldset><fieldset><legend>Giunti</legend><div class="row">${seg('joint.type', JOINT_TYPES.slice(0, 4))}</div><div class="row">${seg('joint.type', JOINT_TYPES.slice(4))}</div>`;
+  if (!lassoMode) {
+    h += `<fieldset><legend>Faccia di taglio</legend><div class="row">${seg('joint.face', [['flat', 'Piana'], ['chamfer', 'Innesto rastremato']])}</div>`;
+    if (j.face === 'chamfer') h += row('Altezza innesto', num('joint.chamfer', 1, 40, 0.5) + ' mm');
+    h += '</fieldset>';
+  } else if (settings.lassoFace === 'chamfer') h += `<fieldset><legend>Innesto rastremato</legend>${row('Altezza innesto', num('joint.chamfer', 1, 40, 0.5) + ' mm')}</fieldset>`;
+  h += `<fieldset><legend>Giunti</legend><div class="row">${seg('joint.type', JOINT_TYPES.slice(0, 4))}</div><div class="row">${seg('joint.type', JOINT_TYPES.slice(4))}</div>`;
   if (j.type === 'key') h += '<p class="small">Linguetta rettangolare lunga su una metà, sede chiusa sull\'altra: allinea bene e regge la flessione.</p>';
   if (j.type === 'dovetail') h += '<p class="small">Profilo trapezoidale che attraversa la sezione: il pezzo si infila di lato scorrendo e non si sfila tirando.</p>';
   if (used.has('pin') || used.has('tenon')) {
@@ -271,12 +297,15 @@ function jointForm(extra = []) {
     h += row('Raggio', num('joint.radius', 0.8, 15, 0.1) + ' mm');
     h += row('Lunghezza', num('joint.length', 2, 60, 0.5) + ' mm');
     h += row('Profondità', num('joint.depth', 0, 12, 0.5) + '<span class="small">mm, 0 = auto (lunghezza)</span>');
+    // v0.7.0: perni e tenoni inclinati (si incastrano in una sola direzione e non si sfilano dritti)
+    h += row('Inclinazione', num('joint.tilt', 0, 35, 1) + '<span class="small">gradi, 0 = dritti</span>');
+    if (j.tilt > 0) h += row('Direzione', num('joint.tiltDir', 0, 359, 15) + '<span class="small">gradi nel piano di taglio</span>');
   }
   if (used.has('magnet')) {
     h += sub('Magneti');
     h += row('Diametro magnete', num('joint.magD', 2, 30, 0.5) + ' mm');
     h += row('Spessore magnete', num('joint.magT', 0.5, 15, 0.5) + ' mm');
-    h += row('Gioco', num('joint.magClr', 0, 1, 0.05) + ' mm');
+    h += row('Gioco magnete', num('joint.magClr', 0, 1, 0.05) + ' mm');
   }
   if (used.has('key') || used.has('dovetail')) {
     h += sub('Chiavetta / Coda di rondine');
@@ -288,11 +317,18 @@ function jointForm(extra = []) {
   if (used.size) {
     h += sub('Comuni');
     h += row('Quantità', num('joint.count', 0, 12, 1) + '<span class="small">0 = auto</span>');
-    h += row('Tolleranza', num('joint.tol', 0, 1, 0.05) + ' mm');
     if (used.has('pin') || used.has('key')) h += `<div class="row">${chk('joint.swap', 'Parte sporgente sull\'altra metà')}</div>`;
     h += `<div class="row">${chk('joint.number', 'Incidi il numero del giunto')}</div>`; if (j.number) h += row('Prof. numero', num('joint.numDepth', 0.2, 2, 0.1) + ' mm');
   }
-  return h + '</fieldset>';
+  h += '</fieldset>';
+  // v0.7.0: GIOCO — nessun giunto è "matematicamente esatto": il foro è più largo del perno (gioco laterale)
+  // e più profondo (gioco in profondità); vale per perni, tenoni, chiavette, code di rondine e innesto.
+  if (used.size || j.face === 'chamfer' || (lassoMode && settings.lassoFace === 'chamfer')) {
+    h += `<fieldset><legend>Gioco di accoppiamento</legend><p class="small">Margine tra le due metà per compensare l'imprecisione della stampa: troppo stretto = non si incastra, troppo largo = ballerino.</p>
+      <div class="btns">${btn('clr', 'Stretto', 'mini', 'data-v="0.1,0.2"')}${btn('clr', 'Normale', 'mini', 'data-v="0.2,0.3"')}${btn('clr', 'Largo', 'mini', 'data-v="0.35,0.5"')}${btn('clr', 'Molto largo', 'mini', 'data-v="0.5,0.7"')}</div>
+      ${row('Gioco laterale', num('joint.tol', 0, 1.5, 0.05) + ' mm')}${row('Gioco in profondità', num('joint.tolDepth', 0, 2, 0.05) + ' mm')}</fieldset>`;
+  }
+  return h + `<div class="btns">${btn('resetJoint', 'Ripristina giunti predefiniti', 'mini')}</div>`;
 }
 
 // v0.5.0: elenco dei tagli con scelta del giunto per ciascuno ("pick per seam")
@@ -469,37 +505,130 @@ tools.line = {
   overlay() { return drag ? `<line class="line" x1="${drag.a.x}" y1="${drag.a.y}" x2="${drag.b.x}" y2="${drag.b.y}"/>` : ''; },
 };
 
+// v0.7.0: STILE DELLA FACCIA per Corda e Banda
+//   seam  = segue la cucitura (tronco di piramide prospettico attraverso il modello)
+//   step  = gradino disegnato (pareti dritte parallele alla vista)
+//   flat  = piano adattato al contorno, con giunti
+//   chamfer = come flat ma con innesto rastremato
+const LASSO_FACES = [['seam', 'Segue la cucitura'], ['step', 'Gradino disegnato'], ['flat', 'Piana'], ['chamfer', 'Rastremata']];
+function lassoPanel() {
+  const planar = settings.lassoFace === 'flat' || settings.lassoFace === 'chamfer';
+  return `<fieldset><legend>Faccia di taglio</legend><div class="row">${seg('lassoFace', LASSO_FACES.slice(0, 2))}</div><div class="row">${seg('lassoFace', LASSO_FACES.slice(2))}</div>
+    <p class="small">${{
+      seam: 'Il taglio segue il contorno disegnato in profondità (vista prospettica). Nessun giunto automatico.',
+      step: 'Pareti dritte, parallele alla direzione di vista: la sagoma disegnata resta come "gradino". Nessun giunto automatico.',
+      flat: 'Il contorno individua la zona da staccare; il taglio avviene su un piano adattato al contorno e ammette tutti i giunti.',
+      chamfer: 'Come "Piana" ma con innesto rastremato che centra le due metà.' }[settings.lassoFace]}</p></fieldset>${planar ? jointForm(seamExtra(), true) : ''}`;
+}
+// Esegue il taglio a lazo con lo stile scelto. pxPts = contorno in pixel [{x,y}]
+function lassoRun(pxPts, label) {
+  let loops = [pxPts.map(p => { const q = toNdc(p); return [q.x, q.y]; })];
+  if (settings.bandRepair) loops = repairLoops(loops[0]);
+  const st = settings.lassoFace;
+  if (st === 'seam' || st === 'step') {
+    const n = lassoCut(targetParts(), loops, V.camera, label, { step: st === 'step' });
+    toast(n ? `Tagliate ${n} parti` : 'Il contorno non attraversa nessuna parte', n ? 'ok' : 'warn'); return n > 0;
+  }
+  return lassoPlanar(loops, label, st);
+}
+// Faccia piana/rastremata: raggi dal contorno -> punti sulla superficie -> piano (PCA) + parte da staccare
+function lassoPlanar(loops, label, style) {
+  const area = l => Math.abs(l.reduce((a, p, i) => { const q = l[(i + 1) % l.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+  const poly = loops.reduce((a, b) => (area(b) > area(a) ? b : a));
+  const ids = new Set(targetParts().map(p => p.id));
+  const list = [...V.meshes.values()].filter(m => m.visible && ids.has(m.userData.partId));
+  for (const m of list) if (!m.geometry.boundsTree) m.geometry.computeBoundsTree();
+  const rc = new THREE.Raycaster(); rc.firstHitOnly = true;
+  const hit = (x, y) => { rc.setFromCamera(new THREE.Vector2(x, y), V.camera); return rc.intersectObjects(list, false)[0] || null; };
+  const edge = [], inside = [], votes = new Map();
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length]; const k = Math.max(1, Math.min(30, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.02)));
+    for (let j = 0; j < k; j++) { const h = hit(a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k); if (h) edge.push(h.point.clone()); }
+  }
+  const xs = poly.map(p => p[0]), ys = poly.map(p => p[1]); const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const insidePoly = (x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) c = !c; } return c; };
+  for (let gx = 0; gx < 18; gx++) for (let gy = 0; gy < 18; gy++) {
+    const x = x0 + (x1 - x0) * (gx + 0.5) / 18, y = y0 + (y1 - y0) * (gy + 0.5) / 18; if (!insidePoly(x, y)) continue;
+    const h = hit(x, y); if (!h) continue;
+    const nrm = h.face.normal.clone().transformDirection(h.object.matrixWorld);
+    inside.push(h.point.clone().addScaledVector(nrm, -0.05)); votes.set(h.object.userData.partId, (votes.get(h.object.userData.partId) || 0) + 1);
+  }
+  if (edge.length < 3 || !inside.length) throw new Error('Il contorno deve circondare una zona visibile del modello');
+  const pid = [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0]; const part = state.parts.find(p => p.id === pid);
+  const pl = planeFromEdge(edge, inside);
+  const opts = { ...settings.joint, face: style === 'chamfer' ? 'chamfer' : 'flat' };
+  const r = planeCut([part], [pl], opts, label, inside);
+  toast(r.created ? 'Regione staccata' : 'Il piano calcolato non attraversa la parte', r.created ? 'ok' : 'warn'); return r.created > 0;
+}
+
 // -------------------------------------------------------------------- Corda --
 tools.rope = {
   short: 'Corda', title: 'Corda (lazo)', icon: 'rope', hk: 'r', orbit: false,
   desc: 'Disegna a mano libera un contorno chiuso attorno alla zona da staccare: il taglio attraversa il modello lungo la vista.',
-  panel: () => `<p class="small">Tasto sinistro: disegna. Al rilascio il contorno si chiude e viene tagliato. Il taglio segue il contorno (cucitura) in profondità.</p><p class="small">Nota beta: i giunti automatici sono disponibili sui tagli piani.</p>`,
+  // [2026-10-08 v0.7.0] panel: () => `<p class="small">Tasto sinistro: disegna. ... Nota beta: i giunti automatici sono disponibili sui tagli piani.</p>`,
+  panel: () => `<p class="small">Tasto sinistro: disegna. Al rilascio il contorno si chiude e viene tagliato.</p>${lassoPanel()}`,
+  onParam() { renderPanel(); },
   down(ev) { if (ev.button !== 0) return false; drag = { pts: [px(ev)] }; return true; },
   move(ev) { if (!drag) return; const p = px(ev); const l = drag.pts[drag.pts.length - 1]; if (Math.hypot(p.x - l.x, p.y - l.y) > 4) { drag.pts.push(p); drawOverlay(); } },
   up() {
     if (!drag) return; const pts = drag.pts; drag = null; drawOverlay();
     if (pts.length < 6) return;
-    run('Taglio a corda', () => { const n = lassoCut(targetParts(), pts.map(p => { const q = toNdc(p); return [q.x, q.y]; }), V.camera, 'Taglio a corda'); toast(n ? `Tagliate ${n} parti` : 'Il contorno non attraversa nessuna parte', n ? 'ok' : 'warn'); });
+    run('Taglio a corda', () => { lassoRun(pts, 'Taglio a corda'); });
   },
   overlay() { return drag ? `<polygon class="lasso" points="${drag.pts.map(p => p.x + ',' + p.y).join(' ')}"/>` : ''; },
 };
 
 // -------------------------------------------------------------------- Banda --
+// v0.7.0: punti fissabili (click senza trascinare = fissa/rilascia; tasto destro su un punto fissato =
+// rilascia), Alt = il punto si posa sulla superficie visibile (o sul profilo più vicino), smussatura
+// (Chaikin: i punti fissati restano dove sono) e riparazione dei bordi che si toccano.
 let band = [];
+// aggancia un punto schermo alla superficie visibile sotto il puntatore; fuori dal modello usa il vertice più vicino
+function snapSurface(p) {
+  const ms = [...V.meshes.values()].filter(m => m.visible); if (!ms.length) return p;
+  const rc = new THREE.Raycaster(); rc.firstHitOnly = true; const q = toNdc(p);
+  for (const m of ms) if (!m.geometry.boundsTree) m.geometry.computeBoundsTree();
+  rc.setFromCamera(new THREE.Vector2(q.x, q.y), V.camera);
+  if (rc.intersectObjects(ms, false).length) return p;
+  let best = null, bd = 60; const v = new THREE.Vector3();
+  for (const m of ms) {
+    const pos = m.geometry.attributes.position; const stride = Math.max(1, Math.floor(pos.count / 20000));
+    for (let i = 0; i < pos.count; i += stride) { v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); const sc = toScreen(v); const d = Math.hypot(sc.x - p.x, sc.y - p.y); if (d < bd) { bd = d; best = sc; } }
+  }
+  return best ? { x: best.x, y: best.y } : p;
+}
 tools.band = {
   short: 'Banda', title: 'Banda elastica', icon: 'band', hk: 'b', orbit: false,
   desc: 'Un anello elastico: clicca per aggiungere punti, trascinali per spostarli, clicca sui pallini intermedi per inserirne altri.',
-  panel: () => `<p class="small">Punti: <b>${band.length}</b>. <kbd>Invio</kbd> taglia · <kbd>Backspace</kbd> toglie l'ultimo · <kbd>Esc</kbd> svuota.</p>
+  // [2026-10-08 v0.7.0] panel: () => `<p class="small">Punti: ... Esc svuota.</p><div class="btns">...</div>`,
+  panel: () => `<p class="small">Punti: <b>${band.length}</b> (fissati: <b>${band.filter(p => p.pin).length}</b>). <kbd>Invio</kbd> taglia · <kbd>Backspace</kbd> toglie l'ultimo · <kbd>Esc</kbd> svuota.</p>
+    <p class="small">Click su un punto (senza trascinare) = lo fissa · tasto destro su un punto fissato = lo rilascia · <kbd>Alt</kbd> mentre trascini = posa il punto sulla superficie visibile.</p>
+    <fieldset><legend>Cucitura</legend>${row('Smussatura', range('bandSmooth', 0, 100, 25) + `<span class="small">${settings.bandSmooth}%</span>`)}
+      <div class="row">${chk('bandRepair', 'Ripara bordi che si toccano')}</div></fieldset>
+    ${lassoPanel()}
     <div class="btns">${btn('doBand', 'Taglia', 'primary', band.length < 3 ? 'disabled' : '')}${btn('clearBand', 'Svuota')}</div>`,
+  onParam(k) { drawOverlay(); if (k !== 'bandSmooth') renderPanel(); },
   down(ev) {
-    if (ev.button !== 0) return false; const p = px(ev);
+    const p = px(ev);
     const hi = band.findIndex(q => Math.hypot(q.x - p.x, q.y - p.y) < 9);
-    if (hi >= 0) { drag = { idx: hi }; return true; }
-    for (let i = 0; i < band.length && band.length > 1; i++) { const a = band[i], b = band[(i + 1) % band.length]; if (Math.hypot((a.x + b.x) / 2 - p.x, (a.y + b.y) / 2 - p.y) < 8) { band.splice(i + 1, 0, p); drag = { idx: i + 1 }; drawOverlay(); renderPanel(); return true; } }
-    band.push(p); drag = { idx: band.length - 1 }; drawOverlay(); renderPanel(); return true;
+    if (ev.button === 2) { if (hi >= 0 && band[hi].pin) { band[hi].pin = false; drawOverlay(); renderPanel(); return true; } return false; }
+    if (ev.button !== 0) return false;
+    if (hi >= 0) { drag = { idx: hi, moved: false, from: p }; return true; }
+    for (let i = 0; i < band.length && band.length > 1; i++) { const a = band[i], b = band[(i + 1) % band.length]; if (Math.hypot((a.x + b.x) / 2 - p.x, (a.y + b.y) / 2 - p.y) < 8) { band.splice(i + 1, 0, { x: p.x, y: p.y, pin: false }); drag = { idx: i + 1, moved: true }; drawOverlay(); renderPanel(); return true; } }
+    const q = ev.altKey ? snapSurface(p) : p;
+    band.push({ x: q.x, y: q.y, pin: false }); drag = { idx: band.length - 1, moved: true }; drawOverlay(); renderPanel(); return true;
   },
-  move(ev) { if (drag && drag.idx !== undefined) { band[drag.idx] = px(ev); drawOverlay(); } },
-  up() { drag = null; },
+  move(ev) {
+    if (drag && drag.idx !== undefined) {
+      const p = px(ev); if (drag.from && !drag.moved && Math.hypot(p.x - drag.from.x, p.y - drag.from.y) < 4) return;
+      drag.moved = true; const q = ev.altKey ? snapSurface(p) : p; band[drag.idx].x = q.x; band[drag.idx].y = q.y; drawOverlay();
+    }
+  },
+  up() {
+    // click senza spostamento su un punto esistente: fissa / rilascia
+    if (drag && drag.idx !== undefined && !drag.moved && band[drag.idx]) { band[drag.idx].pin = !band[drag.idx].pin; drawOverlay(); renderPanel(); }
+    drag = null;
+  },
   key(ev) {
     if (ev.key === 'Enter') { act.doBand(); return true; }
     if (ev.key === 'Backspace') { band.pop(); drawOverlay(); renderPanel(); return true; }
@@ -509,9 +638,12 @@ tools.band = {
   exit() { drawOverlay(''); },
   overlay() {
     if (!band.length) return '';
-    let s = `<polygon class="lasso" points="${band.map(p => p.x + ',' + p.y).join(' ')}"/>`;
+    // con smussatura il contorno mostrato è quello che verrà tagliato; il poligono dei punti resta in tratteggio
+    const sm = settings.bandSmooth > 0 && band.length >= 3 ? smoothBand(band, settings.bandSmooth) : null;
+    let s = sm ? `<polygon class="lasso" points="${sm.map(p => p.x + ',' + p.y).join(' ')}"/><polygon points="${band.map(p => p.x + ',' + p.y).join(' ')}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-dasharray="4 4"/>`
+      : `<polygon class="lasso" points="${band.map(p => p.x + ',' + p.y).join(' ')}"/>`;
     if (band.length > 1) for (let i = 0; i < band.length; i++) { const a = band[i], b = band[(i + 1) % band.length]; s += `<circle class="mid" cx="${(a.x + b.x) / 2}" cy="${(a.y + b.y) / 2}" r="4"/>`; }
-    for (const p of band) s += `<circle class="handle" cx="${p.x}" cy="${p.y}" r="6"/>`;
+    for (const p of band) s += `<circle class="handle${p.pin ? ' pin' : ''}" cx="${p.x}" cy="${p.y}" r="6"/>`;
     return s;
   },
 };
@@ -872,11 +1004,16 @@ const act = {
   doMulti: () => cutWith(withSeamTypes(tools.multi.planes(), tp.seams), 'Multi-piano'),
   // [2026-09-28 v0.4.1] doAuto: () => { ... cutWith(r.planesFor, 'Auto multi-piano'); },
   doAuto: () => { const r = autoPlanesEach(targetParts(), settings.bed, settings.bedMargin); if (!r.all.length) return toast('Tutte le parti entrano già nel volume di stampa', 'ok'); cutWith(p => withSeamTypes(r.planesFor(p), tp.seams), 'Auto multi-piano'); },
+  // [2026-10-08 v0.7.0] doBand: lassoCut diretto (solo faccia "segue la cucitura"); ora passa da lassoRun (4 stili)
   doBand: () => {
     if (band.length < 3) return toast('Servono almeno 3 punti', 'warn');
-    const pts = band.map(p => { const q = toNdc(p); return [q.x, q.y]; });
-    run('Taglio a banda', () => { const n = lassoCut(targetParts(), pts, V.camera, 'Taglio a banda'); if (n) { band = []; drawOverlay(); renderPanel(); } toast(n ? `Tagliate ${n} parti` : 'La banda non attraversa nessuna parte', n ? 'ok' : 'warn'); });
+    const pts = settings.bandSmooth > 0 ? smoothBand(band, settings.bandSmooth) : band;
+    run('Taglio a banda', () => { if (lassoRun(pts, 'Taglio a banda')) { band = []; drawOverlay(); renderPanel(); } });
   },
+  // v0.7.0: gioco predefinito (laterale, profondità), ripristino giunti, progetto
+  clr: el => { const [a, b] = el.dataset.v.split(',').map(Number); settings.joint.tol = a; settings.joint.tolDepth = b; saveSettings(); renderPanel(); },
+  resetJoint: () => { Object.assign(settings.joint, structuredClone(DEFAULT_JOINT)); saveSettings(); renderPanel(); toast('Giunti riportati ai valori predefiniti', 'ok'); },
+  saveProject: () => saveProject(),
   clearBand: () => { band = []; drawOverlay(); renderPanel(); },
   clearPaint: () => { if (paintMesh) clearLayer(paintMesh, 'paint'); planeObj.visible = false; V.gizmo.detach(); redraw(); },
   doPaint: () => paintCut(settings.joint, 'Taglio a pennello'),
@@ -1102,6 +1239,7 @@ function bindGlobal() {
     if (e.ctrlKey && k === 'z') { e.preventDefault(); e.shiftKey ? act.redo() : act.undo(); return; }
     if (e.ctrlKey && k === 'y') { e.preventDefault(); act.redo(); return; }
     if (e.ctrlKey && k === 'o') { e.preventDefault(); act.open(); return; }
+    if (e.ctrlKey && k === 's') { e.preventDefault(); saveProject(); return; }
     if (e.ctrlKey && k === 'a') { e.preventDefault(); act.selall(); return; }
     if (e.ctrlKey || e.metaKey) return;
     if (tool.key && tool.key(e)) { e.preventDefault(); return; }

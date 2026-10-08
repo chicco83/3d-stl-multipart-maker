@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — joints.js
-// Versione: 0.5.0-beta — 2026-09-28 11:35
+// Versione: 0.7.0-beta — 2026-10-08 12:00
 // -----------------------------------------------------------------------------
 // Taglio planare con giunti. Flusso:
 //  1. il solido viene portato in un sistema locale dove il piano di taglio è
@@ -145,7 +145,10 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
     const sP = T(pos.slice(0.02)), sN = T(neg.slice(-0.02));
     const cs = T(sP.intersect(sN));
     if (!cs.isEmpty() && (o.type !== 'none' || o.face === 'chamfer')) {
-      const tol = o.tol, wall = Math.max(1.2, 2 * tol + 1);
+      // [2026-10-08 v0.7.0] const tol = o.tol, wall = Math.max(1.2, 2 * tol + 1);
+      // v0.7.0: GIOCO. tol = gioco laterale (foro più largo del perno), td = gioco in profondità
+      // (foro più profondo, tenone più corto): servono perché la stampa non è mai esatta.
+      const tol = o.tol, td = o.tolDepth !== undefined ? o.tolDepth : o.tol, wall = Math.max(1.2, 2 * tol + 1);
       const addN = [], subP = [], subN = [], addP = [];
 
       // ---- innesto rastremato (face = chamfer): tappo a 4 gradini ----------
@@ -157,7 +160,7 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
           if (layer.isEmpty()) break;
           addN.push(T(prism(layer, i === 0 ? -0.3 : i * sh, (i + 1) * sh)));
           const hole = T(layer.offset(tol, 'Round'));
-          subP.push(T(prism(hole, -0.3, (i + 1) * sh + tol)));
+          subP.push(T(prism(hole, -0.3, (i + 1) * sh + td)));
           if (i === 0) plugRegion = layer;
         }
         used = addN.length > 0;
@@ -229,8 +232,8 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
                 const rect = T(T(T(CrossSection.square([kl, wid], true)).rotate(ang * 180 / Math.PI)).translate([cx + ux * (umin + umax) / 2, cy + uy * (umin + umax) / 2]));
                 const clip = T(rect.intersect(isl)); if (clip.isEmpty()) continue;
                 const hole = T(clip.offset(tol, 'Miter'));
-                if (!o.swap) { addN.push(T(prism(clip, -0.4, h))); subP.push(T(prism(hole, -0.1, h + tol))); }
-                else { addP.push(T(prism(clip, -h, 0.4))); subN.push(T(prism(hole, -h - tol, 0.1))); }
+                if (!o.swap) { addN.push(T(prism(clip, -0.4, h))); subP.push(T(prism(hole, -0.1, h + td))); }
+                else { addP.push(T(prism(clip, -h, 0.4))); subN.push(T(prism(hole, -h - td, 0.1))); }
                 for (let t = -kl / 2; t <= kl / 2; t += wid) pts.push({ x: cx + ux * ((umin + umax) / 2 + t), y: cy + uy * ((umin + umax) / 2 + t) });
               } else {
                 const w2 = wid + 2 * h * Math.tan(o.dvAngle * Math.PI / 180);
@@ -241,7 +244,7 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
                 const tail = T(T(T(tailP.extrude(longL)).translate([0, 0, -longL / 2])).transform(B.elements));
                 const tailClip = T(Manifold.intersection(tail, T(prism(isl, -1, h + 1))));
                 if (tailClip.isEmpty()) continue;
-                const grooveP = T(trap(wid, w2, tol, -0.1, h + tol));
+                const grooveP = T(trap(wid, w2, tol, -0.1, h + td));
                 const groove = T(T(T(grooveP.extrude(longL)).translate([0, 0, -longL / 2])).transform(B.elements));
                 addN.push(tailClip); subP.push(groove);
                 for (let t = umin; t <= umax; t += wid) pts.push({ x: cx + ux * t, y: cy + uy * t });
@@ -250,7 +253,15 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
             }
           }
         } else {
-        const inset = T(cs.offset(-(r + tol + Math.max(wall, 2, r)), 'Round'));  // distanza dal bordo: evita pareti troppo sottili
+        // [2026-10-08 v0.7.0] const inset = T(cs.offset(-(r + tol + Math.max(wall, 2, r)), 'Round'));
+        // v0.7.0: con perni inclinati si tiene più distanza dal bordo (spostamento in punta = len*tan(tilt))
+        const tilt = (o.type === 'pin' || o.type === 'tenon') ? Math.min(Math.abs(o.tilt || 0), 35) * Math.PI / 180 : 0;
+        const lean = tilt ? len * Math.tan(tilt) : 0;
+        const inset = T(cs.offset(-(r + tol + lean + Math.max(wall, 2, r)), 'Round'));  // distanza dal bordo: evita pareti troppo sottili
+        // matrice di posa di un giunto in (x,y): traslazione + inclinazione attorno all'asse perpendicolare alla direzione
+        const dir = (o.tiltDir || 0) * Math.PI / 180;
+        const pose = p => { const m = new THREE.Matrix4().makeTranslation(p.x, p.y, 0); if (tilt) m.multiply(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(-Math.sin(dir), Math.cos(dir), 0), tilt)); return m.elements; };
+        const place = (cs0, z0, z1, p) => T(T(prism(cs0, z0, z1)).transform(pose(p)));
         for (const isl of inset.decompose()) {
           T(isl); const a = isl.area(); if (a <= 0) continue;
           const nAuto = a < 60 ? 1 : a < 900 ? 2 : a < 3500 ? 3 : 4;
@@ -261,14 +272,14 @@ export function jointedSplit(man, n, d, o, jointNo, samples = null) {
         for (const p of pts) {
           used = true;
           if (o.type === 'pin') {
-            const pin = T(shapeCS(o.shape, o.radius)).translate([p.x, p.y]); T(pin);
-            const hole = T(T(shapeCS(o.shape, o.radius + tol)).translate([p.x, p.y]));
-            if (!o.swap) { addN.push(T(prism(pin, -0.4, len))); subP.push(T(prism(hole, -0.1, len + tol))); }
-            else { addP.push(T(prism(pin, -len, 0.4))); subN.push(T(prism(hole, -len - tol, 0.1))); }
+            const pin = T(shapeCS(o.shape, o.radius));
+            const hole = T(shapeCS(o.shape, o.radius + tol));
+            if (!o.swap) { addN.push(place(pin, -0.4, len, p)); subP.push(place(hole, -0.1, len + td, p)); }
+            else { addP.push(place(pin, -len, 0.4, p)); subN.push(place(hole, -len - td, 0.1, p)); }
           } else if (o.type === 'tenon') {
-            const hole = T(T(shapeCS(o.shape, o.radius + tol)).translate([p.x, p.y]));
-            subP.push(T(prism(hole, -0.1, len / 2 + tol))); subN.push(T(prism(hole, -len / 2 - tol, 0.1)));
-            const dw = T(shapeCS(o.shape, o.radius)); dowels.push(dw.extrude(len - tol));
+            const hole = T(shapeCS(o.shape, o.radius + tol));
+            subP.push(place(hole, -0.1, len / 2 + td, p)); subN.push(place(hole, -len / 2 - td, 0.1, p));
+            const dw = T(shapeCS(o.shape, o.radius)); dowels.push(dw.extrude(len - td));
           } else if (o.type === 'magnet') {
             const hole = T(T(CrossSection.circle(o.magD / 2 + o.magClr, 48)).translate([p.x, p.y]));
             const dep = o.magT + o.magClr;

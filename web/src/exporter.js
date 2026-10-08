@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — exporter.js
-// Versione: 0.6.0-beta — 2026-10-01 11:03
+// Versione: 0.7.0-beta — 2026-10-08 12:00
 // -----------------------------------------------------------------------------
 // Esportazione: STL binario, 3MF (un oggetto per parte), ZIP (STL + 3MF +
 // guida PDF), guida di montaggio PDF (jsPDF) con panoramica numerata,
@@ -9,7 +9,7 @@
 // =============================================================================
 
 import * as THREE from 'three';
-import { zipSync, strToU8 } from 'fflate';
+import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { jsPDF } from 'jspdf';
 import { bboxOf } from './geo.js';
 // v0.6.0: guida PDF nella lingua dell'interfaccia
@@ -79,7 +79,7 @@ export function guidePDF(title, parts, log, thumbs, opts) {
     title: 'Assembly guide', parts: 'parts', joints: 'joints', jt: 'Joints', no: 'No.', type: 'Type', pa: 'Part A', pb: 'Part B', conn: 'Conn.',
     none: 'No joints recorded.', instrT: 'Instructions by joint type', partsT: 'Parts', jl: 'Joints', locale: 'en-GB',
     tips: ['Print each part with its largest cut face on the bed whenever possible.',
-      `Joint tolerance: ${opts.tol} mm. If the fit is too tight, sand lightly or increase the tolerance.`,
+      `Joint clearance: ${opts.tol} mm (depth ${opts.tolDepth !== undefined ? opts.tolDepth : opts.tol} mm). If the fit is too tight, sand lightly or increase the tolerance.`,
       'The numbers engraved on the cut faces show which faces go together (same number = same joint).'],
     instr: [['Integrated pins', 'The pins stick out of one part: push them into the holes of the matching part. A thin layer of CA or epoxy glue makes the joint permanent.'],
       ['Loose dowels', 'Print the dowels ("Dowel G…" parts), glue them into one side first, then fit the other part.'],
@@ -92,7 +92,7 @@ export function guidePDF(title, parts, log, thumbs, opts) {
     title: 'Guida di montaggio', parts: 'parti', joints: 'giunti', tipsT: 'Consigli', jt: 'Giunti', no: 'N°', type: 'Tipo', pa: 'Parte A', pb: 'Parte B', conn: 'Conn.',
     none: 'Nessun giunto registrato.', instrT: 'Istruzioni per tipo di giunto', partsT: 'Parti', jl: 'Giunti', locale: 'it-IT',
     tips: ['Stampa ogni parte con la faccia di taglio più ampia appoggiata al piatto quando possibile.',
-      `Tolleranza giunti: ${opts.tol} mm. Se l'accoppiamento è troppo duro, carteggia leggermente o aumenta la tolleranza.`,
+      `Gioco giunti: ${opts.tol} mm (profondità ${opts.tolDepth !== undefined ? opts.tolDepth : opts.tol} mm). Se l'accoppiamento è troppo duro, carteggia leggermente o aumenta la tolleranza.`,
       'I numeri incisi sulle facce di taglio indicano quali facce vanno unite (stesso numero = stesso giunto).'],
     instr: [['Perni integrati', 'I perni sporgono da una parte: inseriscili nei fori della parte corrispondente. Un velo di colla CA o epossidica rende l\'unione permanente.'],
       ['Tenoni sciolti', 'Stampa i tenoni (parti "Tenone G…"), incollali prima in un lato e poi accoppia l\'altra parte.'],
@@ -197,4 +197,32 @@ export async function saveFile(name, bytes, mime, desc = 'File') {
   const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000); return name;
+}
+
+// -----------------------------------------------------------------------------
+// v0.7.0 — FILE DI PROGETTO (.stlmp)
+// Contenitore ZIP: project.json (impostazioni, registro giunti, elenco parti) +
+// per ogni parte i vertici (p<i>.vp, Float32) e i triangoli (p<i>.tv, Uint32).
+// Si salva tutto il lavoro (anche parti nascoste e tenoni) e si riapre identico.
+// -----------------------------------------------------------------------------
+export function projectBytes(parts, extra) {
+  const files = {};
+  const meta = parts.map((p, i) => {
+    files[`p${i}.vp`] = new Uint8Array(p.data.vp.buffer, p.data.vp.byteOffset, p.data.vp.byteLength);
+    files[`p${i}.tv`] = new Uint8Array(p.data.tv.buffer, p.data.tv.byteOffset, p.data.tv.byteLength);
+    return { name: p.name, color: p.color, joints: p.joints, kind: p.kind, hidden: !!p.hidden };
+  });
+  files['project.json'] = strToU8(JSON.stringify({ app: '3D STL Multipart Maker', format: 1, ...extra, parts: meta }));
+  return zipSync(files, { level: 3 });
+}
+export function readProject(buf) {
+  const f = unzipSync(new Uint8Array(buf));
+  if (!f['project.json']) throw new Error('File di progetto non valido');
+  const j = JSON.parse(strFromU8(f['project.json']));
+  const parts = j.parts.map((m, i) => {
+    const a = f[`p${i}.vp`], b = f[`p${i}.tv`]; if (!a || !b) throw new Error('File di progetto incompleto');
+    // copia in buffer allineati (le viste dello ZIP possono avere offset dispari)
+    return { ...m, data: { vp: new Float32Array(a.slice().buffer), tv: new Uint32Array(b.slice().buffer) } };
+  });
+  return { ...j, parts };
 }

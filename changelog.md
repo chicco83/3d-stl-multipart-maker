@@ -1,5 +1,21 @@
 # 3D STL Multipart Maker — changelog.md
-**Versione corrente: 0.6.2-beta — 2026-10-07 00:52**
+**Versione corrente: 0.7.0-beta — 2026-10-08 12:00**
+
+## [0.7.0-beta] — 2026-10-08 12:00
+### Aggiunto
+- **Gioco di accoppiamento** per tutti i giunti: *Gioco laterale* (`tol`, default 0,2 mm) e *Gioco in profondità* (`tolDepth`, default 0,3 mm), preset Stretto/Normale/Largo/Molto largo, valori riportati nella guida PDF. Prima esisteva solo «Tolleranza» laterale; ora fori più profondi e tenoni più corti compensano anche l'asse di inserimento.
+- **Stili della faccia di taglio** per Corda e Banda: *Segue la cucitura*, *Gradino disegnato*, *Piana*, *Rastremata* (le ultime due ammettono i giunti).
+- **Banda**: punti fissabili (click = fissa, tasto destro = rilascia), Alt = posa il punto sulla superficie visibile, *Smussatura*, *Ripara bordi che si toccano* (la riparazione vale anche per la Corda).
+- **Salva / Apri progetto** (`.stlmp`, Ctrl+S): parti, registro giunti, volume di stampa e impostazioni giunti in un solo file; si riapre con Apri o trascinandolo.
+- **Perni e tenoni inclinati** (inclinazione e direzione) e pulsante **Ripristina giunti predefiniti**.
+### Modificato
+- La riga «Tolleranza» dei giunti è sostituita dal riquadro «Gioco di accoppiamento»; «Gioco» dei magneti → «Gioco magnete».
+- README (IT + EN): documentate anche funzioni già presenti ma non descritte (*Scala %…*, Ctrl+Y, *Annulla taglio* e *Orienta tutti i pezzi* nella guida, preset stampante).
+- Versione del launcher Go allineata (era rimasta 0.6.1).
+### Verifica
+- Provato nel browser (build di test): taglio a piano con perni inclinati e gioco; Banda con i 4 stili, punti fissati/rilasciati, smussatura + riparazione; andata e ritorno del file di progetto (prova su `projectBytes`/`readProject`). **Non provati**: Alt-aggancio alla superficie, apertura del `.stlmp` dal pulsante Apri, salvataggio con la finestra nativa Windows, stampa reale dei giochi (i valori predefiniti sono indicativi).
+### Rollback
+- `git revert <commit 0.7.0>` oppure `git checkout d67113b -- web launcher README.md` (ultima 0.6.2).
 
 ## [0.6.2-beta] — 2026-10-07 00:52
 ### Aggiunto

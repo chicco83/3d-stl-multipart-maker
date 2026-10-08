@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — i18n.js
-// Versione: 0.6.0-beta — 2026-10-01 11:03
+// Versione: 0.7.0-beta — 2026-10-08 12:00
 // -----------------------------------------------------------------------------
 // Interfaccia bilingue Italiano / English.
 // L'app genera i testi in italiano; questo modulo li traduce nel DOM in modo
@@ -153,6 +153,25 @@ const DICT = {
   'Calcolo orientamento': 'Computing orientation', 'Creazione forma': 'Creating shape', 'Creazione modello di prova': 'Creating sample model', 'Esportazione': 'Exporting', 'Importazione': 'Importing',
   'Ispezione': 'Inspecting', 'Operazione booleana': 'Boolean operation', 'Riduzione dettaglio': 'Reducing detail', 'Separazione': 'Separating', 'Suddivisione': 'Subdividing', 'Taglio a banda': 'Band cut',
   'Taglio a corda': 'Rope cut', 'Taglio a pennello': 'Brush cut', 'Isola regione': 'Isolating region', 'Riparazione': 'Repairing',
+  // v0.7.0: gioco, inclinazione, stili faccia, banda, progetto
+  'Gioco di accoppiamento': 'Fit clearance', 'Margine tra le due metà per compensare l\'imprecisione della stampa: troppo stretto = non si incastra, troppo largo = ballerino.': 'Margin between the two halves to compensate for print inaccuracy: too tight = it will not fit, too loose = it wobbles.',
+  'Stretto': 'Tight', 'Normale': 'Normal', 'Largo': 'Loose', 'Molto largo': 'Very loose', 'Gioco laterale': 'Side clearance', 'Gioco in profondità': 'Depth clearance', 'Gioco magnete': 'Magnet clearance',
+  'Inclinazione': 'Tilt', 'gradi, 0 = dritti': 'degrees, 0 = straight', 'Direzione': 'Direction', 'gradi nel piano di taglio': 'degrees in the cut plane', 'Ripristina giunti predefiniti': 'Reset joints to defaults',
+  'Giunti riportati ai valori predefiniti': 'Joints reset to defaults',
+  'Segue la cucitura': 'Follows the seam', 'Gradino disegnato': 'Drawn step', 'Rastremata': 'Tapered',
+  'Il taglio segue il contorno disegnato in profondità (vista prospettica). Nessun giunto automatico.': 'The cut follows the drawn outline in depth (perspective view). No automatic joints.',
+  'Pareti dritte, parallele alla direzione di vista: la sagoma disegnata resta come "gradino". Nessun giunto automatico.': 'Straight walls parallel to the view direction: the drawn shape stays as a "step". No automatic joints.',
+  'Il contorno individua la zona da staccare; il taglio avviene su un piano adattato al contorno e ammette tutti i giunti.': 'The outline selects the area to detach; the cut is made on a plane fitted to the outline and allows all joints.',
+  'Come "Piana" ma con innesto rastremato che centra le due metà.': 'Like "Flat" but with a tapered plug that centres the two halves.',
+  'Tasto sinistro: disegna. Al rilascio il contorno si chiude e viene tagliato.': 'Left button: draw. On release the outline closes and is cut.',
+  '(fissati:': '(pinned:', ').': ').', 'Cucitura': 'Seam', 'Smussatura': 'Smoothing', 'Ripara bordi che si toccano': 'Repair touching boundaries',
+  'Click su un punto (senza trascinare) = lo fissa ·': 'Click a point (without dragging) = pins it ·', 'tasto destro su un punto fissato = lo rilascia ·': 'right-click a pinned point = releases it ·',
+  'Alt': 'Alt', 'mentre trascini = posa il punto sulla superficie visibile.': 'while dragging = places the point on the visible surface.',
+  'Il contorno deve circondare una zona visibile del modello': 'The outline must surround a visible area of the model', 'Contorno troppo corto': 'Outline too short', 'Il contorno non attraversa nessuna parte': 'The outline does not cross any part',
+  'Regione staccata': 'Region detached', 'Il piano calcolato non attraversa la parte': 'The computed plane does not cross the part',
+  'Salva': 'Save', 'Salva il progetto': 'Save the project', 'Apri STL / 3MF / OBJ / progetto': 'Open STL / 3MF / OBJ / project', 'Rilascia qui i file STL / 3MF / OBJ / progetto': 'Drop STL / 3MF / OBJ / project files here',
+  'Niente da salvare': 'Nothing to save', 'File di progetto non valido': 'Invalid project file', 'File di progetto incompleto': 'Incomplete project file', 'Salvataggio progetto': 'Saving project',
+  'Aprire il progetto sostituisce le parti attuali (si può annullare con Ctrl+Z). Continuare?': 'Opening the project replaces the current parts (you can undo with Ctrl+Z). Continue?',
   // nomi predefiniti delle parti (t())
   'Razzo demo': 'Demo rocket', 'Tenone': 'Dowel', 'copia': 'copy',
 };
@@ -173,6 +192,8 @@ const PATTERNS = [
   [/^Creati (\d+) pezzi$/, (m, a) => `Created ${a} pieces`],
   [/^Create (\d+) parti(?: \+ (\d+) tenoni)?$/, (m, a, b) => `Created ${a} parts${b ? ` + ${b} dowels` : ''}`],
   [/^Salvato: (.+)$/, (m, a) => `Saved: ${a}`],
+  [/^Progetto salvato: (.+)$/, (m, a) => `Project saved: ${a}`],
+  [/^Progetto aperto: (\d+) parti$/, (m, a) => `Project opened: ${a} parts`],
   [/^Inviato a Mesh2STEP: (.+)$/, (m, a) => `Sent to Mesh2STEP: ${a}`],
   [/^Triangoli: (.+) → (.+)$/, (m, a, b) => `Triangles: ${a} → ${b}`],
   [/^Formato non supportato: (.+)$/, (m, a) => `Unsupported format: ${a}`],

@@ -1,6 +1,6 @@
 // =============================================================================
 // 3D STL Multipart Maker — cuts.js
-// Versione: 0.6.0-beta — 2026-10-01 11:03
+// Versione: 0.7.0-beta — 2026-10-08 12:00
 // -----------------------------------------------------------------------------
 // Operazioni di taglio ad alto livello sulle parti:
 //  - planeCut:       uno o più piani (piano, multi-piano, auto multi-piano, linea)
@@ -138,8 +138,14 @@ export function evenPlanes(bb, counts) {
 // modello; ogni parte viene divisa in "dentro" e "fuori".
 //   ndcPts: [[x,y]] coordinate normalizzate (-1..1)
 // -----------------------------------------------------------------------------
-export function lassoCut(targets, ndcPts, camera, label = 'Taglio a lazo') {
-  if (ndcPts.length < 3) throw new Error('Contorno troppo corto');
+// v0.7.0: ndcPts può essere un contorno [[x,y]...] oppure più contorni [[[x,y]...],...]
+//   (dopo la riparazione dei bordi che si toccano); opts.step = true -> "gradino disegnato":
+//   pareti dritte parallele alla vista (proiezione ortogonale alla profondità del centro del
+//   modello) invece del tronco di piramide prospettico ("segue la cucitura").
+// [2026-10-08 v0.7.0] export function lassoCut(targets, ndcPts, camera, label = 'Taglio a lazo') {
+export function lassoCut(targets, ndcPts, camera, label = 'Taglio a lazo', opts = {}) {
+  const loops = Array.isArray(ndcPts[0][0]) ? ndcPts : [ndcPts];
+  if (!loops.length || loops.some(l => l.length < 3)) throw new Error('Contorno troppo corto');
   camera.updateMatrixWorld();
   const C = new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
   const e = camera.matrixWorld.elements;
@@ -151,11 +157,19 @@ export function lassoCut(targets, ndcPts, camera, label = 'Taglio a lazo') {
   for (const p of targets) { const b = bboxOf(p.data); for (let i = 0; i < 8; i++) { const v = new THREE.Vector3(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z); const t = v.sub(C).dot(f); tmin = Math.min(tmin, t); tmax = Math.max(tmax, t); } }
   const t0 = Math.max(tmin - 1, tmax * 0.02, 0.05), t1 = tmax + 1;
   // sistema locale destrorso: X=r, Y=-u, Z=f (così la profondità cresce su +Z)
-  const poly = ndcPts.map(([x, y]) => [x * tanX, -y * tanY]);
-  const cs = new CrossSection([poly], 'EvenOdd');
+  // [2026-10-08 v0.7.0] const poly = ndcPts.map(([x, y]) => [x * tanX, -y * tanY]);
+  // [2026-10-08 v0.7.0] const cs = new CrossSection([poly], 'EvenOdd');
+  const polys = loops.map(l => l.map(([x, y]) => [x * tanX, -y * tanY]));
+  const cs = new CrossSection(polys, 'EvenOdd');
   const base = cs.scale(t0);
   const k = t1 / t0;
-  const pr = base.extrude(t1 - t0, 0, 0, [k, k]).translate([0, 0, t0]);
+  let pr;
+  if (opts.step) {
+    // pareti dritte: la sagoma viene presa alla profondità media delle parti
+    const tc = Math.max((tmin + tmax) / 2, t0);
+    const flat = cs.scale(tc);
+    pr = flat.extrude(t1 - t0).translate([0, 0, t0]); flat.delete();
+  } else pr = base.extrude(t1 - t0, 0, 0, [k, k]).translate([0, 0, t0]);
   const M = new THREE.Matrix4().makeBasis(r, u.clone().negate(), f).setPosition(C);
   const cutter = pr.transform(M.elements);
   cs.delete(); base.delete(); pr.delete();
@@ -230,6 +244,45 @@ function smallestEigen(a) {
   }
   let m = 0; for (let i = 1; i < 3; i++) if (A[i][i] < A[m][m]) m = i;
   return new THREE.Vector3(V[0][m], V[1][m], V[2][m]).normalize();
+}
+
+// v0.7.0: piano di taglio per Corda/Banda con faccia piana/rastremata: PCA dei punti del
+// contorno sulla superficie (normale = direzione di minima varianza), orientata verso l'interno
+export function planeFromEdge(edgePts, insidePts) {
+  const c = edgePts.reduce((s, p) => s.add(p), new THREE.Vector3()).divideScalar(edgePts.length);
+  const cov = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (const p of edgePts) { const d = [p.x - c.x, p.y - c.y, p.z - c.z]; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cov[i][j] += d[i] * d[j]; }
+  const n = smallestEigen(cov);
+  const ic = insidePts.reduce((s, p) => s.add(p), new THREE.Vector3()).divideScalar(insidePts.length);
+  if (n.dot(ic.sub(c)) < 0) n.negate();
+  return { n, d: n.dot(c) };
+}
+
+// v0.7.0: "ripara bordi che si toccano" — il contorno viene unito con regola NonZero: incroci e
+// tratti sovrapposti diventano uno o più contorni semplici (coordinate NDC)
+export function repairLoops(pts) {
+  try {
+    const cs = new CrossSection([pts.map(p => [p[0], p[1]])], 'NonZero');
+    const out = cs.toPolygons().filter(l => l.length >= 3); cs.delete();
+    return out.length ? out : [pts];
+  } catch (e) { return [pts]; }   // contorno degenere: si usa così com'è
+}
+// v0.7.0: smussatura della banda — Chaikin ripetuto; i punti "fissati" (pin) restano dove sono
+//   pts: [{x,y,pin}] in pixel; amount 0..100 -> 0..4 passate di taglio degli angoli
+export function smoothBand(pts, amount) {
+  const it = Math.round(Math.min(100, Math.max(0, amount)) / 25);
+  let cur = pts.map(p => ({ x: p.x, y: p.y, pin: !!p.pin }));
+  for (let k = 0; k < it && cur.length >= 3; k++) {
+    const next = [];
+    for (let i = 0; i < cur.length; i++) {
+      const a = cur[i], b = cur[(i + 1) % cur.length];
+      if (a.pin) next.push({ ...a });
+      else next.push({ x: 0.75 * a.x + 0.25 * b.x, y: 0.75 * a.y + 0.25 * b.y, pin: false });
+      if (!a.pin || !b.pin) next.push({ x: 0.25 * a.x + 0.75 * b.x, y: 0.25 * a.y + 0.75 * b.y, pin: false });
+    }
+    cur = next;
+  }
+  return cur;
 }
 
 // Piano da una linea tracciata sullo schermo (contiene la direzione di vista)
